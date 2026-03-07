@@ -330,17 +330,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { AppContext } from '../context/AppContext';
 import CashfreePayment from '../components/payment/CashfreePayment';
-import { resolveMediaUrl } from '../utils/media';
-
-const getSafePdfUrl = (url) => {
-    if (!url || typeof url !== "string") return url;
-    if (!url.includes("/res.cloudinary.com/")) return url;
-    const lowerUrl = url.toLowerCase();
-    const looksLikePdfAsset =
-        lowerUrl.includes(".pdf") || lowerUrl.includes("/pib-bits/pdfs/");
-    if (!looksLikePdfAsset) return url;
-    return url.replace("/image/upload/", "/raw/upload/");
-};
+import { resolveCoverImageUrl, resolvePdfUrl } from '../utils/media';
 
 export default function PdfDetails() {
     const { id } = useParams();
@@ -438,9 +428,9 @@ export default function PdfDetails() {
                 <div className="lg:col-span-2">
 
                     {/* Cover Image */}
-                    {resolveMediaUrl(course.coverUrl) && (
+                    {resolveCoverImageUrl(course.coverUrl) && (
                         <img
-                            src={resolveMediaUrl(course.coverUrl)}
+                            src={resolveCoverImageUrl(course.coverUrl)}
                             alt={course.title}
                             className="w-full h-72 object-cover rounded mb-6"
                         />
@@ -476,7 +466,7 @@ export default function PdfDetails() {
                         <Card>
                             <h3 className="font-bold mb-4">Course PDF</h3>
                             <a
-                                href={getSafePdfUrl(course.pdfUrl)}
+                                href={resolvePdfUrl(course.pdfUrl)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-block"

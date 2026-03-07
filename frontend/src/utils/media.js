@@ -10,6 +10,12 @@ const getApiOrigin = () => {
 
 const API_ORIGIN = getApiOrigin();
 
+export const isPdfAssetUrl = (url) => {
+    if (!url || typeof url !== "string") return false;
+    const value = url.toLowerCase();
+    return value.includes(".pdf") || value.includes("/pib-bits/pdfs/");
+};
+
 export const resolveMediaUrl = (url) => {
     if (!url || typeof url !== "string") return "";
 
@@ -36,4 +42,25 @@ export const resolveMediaUrl = (url) => {
     }
 
     return API_ORIGIN ? `${API_ORIGIN}/${value}` : value;
+};
+
+export const resolveCoverImageUrl = (url) => {
+    const resolved = resolveMediaUrl(url);
+    if (!resolved) return "";
+    return isPdfAssetUrl(resolved) ? "" : resolved;
+};
+
+export const resolvePdfUrl = (url) => {
+    const resolved = resolveMediaUrl(url);
+    if (!resolved) return "";
+
+    if (!/res\.cloudinary\.com/i.test(resolved)) {
+        return resolved;
+    }
+
+    if (!isPdfAssetUrl(resolved)) {
+        return resolved;
+    }
+
+    return resolved.replace(/\/image\/upload\//i, "/raw/upload/");
 };

@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { AppContext } from '../../context/AppContext';
-import { resolveMediaUrl } from '../../utils/media';
+import { resolveCoverImageUrl } from '../../utils/media';
 
 export default function PdfCard({ pdf, course }) {
     const { theme } = useContext(AppContext);
     const data = pdf || course;
-    const coverSrc = resolveMediaUrl(data?.coverUrl || data?.cover);
+    const coverSrc = resolveCoverImageUrl(data?.coverUrl || data?.cover);
 
     return (
         <Link to={`/pdf/${data?._id || data?.id || 1}`}>

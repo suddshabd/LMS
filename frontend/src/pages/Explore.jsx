@@ -258,7 +258,7 @@ import { courseAPI } from '../services/apiService';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { AppContext } from '../context/AppContext';
-import { resolveMediaUrl } from '../utils/media';
+import { resolveCoverImageUrl } from '../utils/media';
 
 const hasPublicCourseDetails = (course) =>
     Boolean(
@@ -384,9 +384,9 @@ export default function Explore() {
                             <Link to={`/pdf/${course._id}`} key={course._id}>
                                 <Card hoverable>
 
-                                    {resolveMediaUrl(course.coverUrl) && (
+                                    {resolveCoverImageUrl(course.coverUrl) && (
                                         <img
-                                            src={resolveMediaUrl(course.coverUrl)}
+                                            src={resolveCoverImageUrl(course.coverUrl)}
                                             alt={course.title}
                                             className="w-full h-48 object-cover rounded mb-4"
                                         />

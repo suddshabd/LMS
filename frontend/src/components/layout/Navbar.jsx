@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
     UserButton,
     useAuth,
-    SignInButton,
+    useClerk,
 } from "@clerk/clerk-react";
 import { AppContext } from "../../context/AppContext";
 import Button from "../ui/Button";
@@ -12,6 +12,7 @@ export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { theme, setTheme, appUser } = useContext(AppContext);
     const { isLoaded, isSignedIn } = useAuth();
+    const clerk = useClerk();
 
     const toggleTheme = () => {
         setTheme(theme === "light" ? "dark" : "light");
@@ -20,6 +21,20 @@ export default function Navbar() {
     const isAdmin = appUser?.role === "admin";
     const isInstructor = appUser?.role === "instructor";
     const shouldShowSignIn = !isSignedIn;
+
+    const handleSignInClick = async () => {
+        try {
+            if (!isLoaded) return;
+            await clerk.openSignIn({
+                fallbackRedirectUrl: window.location.href,
+            });
+        } catch (error) {
+            console.error("Sign-in modal failed, redirecting to sign-in:", error);
+            clerk.redirectToSignIn({
+                returnBackUrl: window.location.href,
+            });
+        }
+    };
 
     return (
         <nav
@@ -61,15 +76,13 @@ export default function Navbar() {
                         </button>
 
                         {shouldShowSignIn && (
-                            <SignInButton mode="modal">
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    disabled={!isLoaded}
-                                >
-                                    Sign In
-                                </Button>
-                            </SignInButton>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={handleSignInClick}
+                            >
+                                Sign In
+                            </Button>
                         )}
 
                         {!shouldShowSignIn && (
@@ -150,16 +163,14 @@ export default function Navbar() {
                         </Link>
 
                         {shouldShowSignIn && (
-                            <SignInButton mode="modal">
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    className="w-full"
-                                    disabled={!isLoaded}
-                                >
-                                    Sign In
-                                </Button>
-                            </SignInButton>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="w-full"
+                                onClick={handleSignInClick}
+                            >
+                                Sign In
+                            </Button>
                         )}
 
                         {!shouldShowSignIn && (
