@@ -47,7 +47,25 @@ export const resolveMediaUrl = (url) => {
 export const resolveCoverImageUrl = (url) => {
     const resolved = resolveMediaUrl(url);
     if (!resolved) return "";
-    return isPdfAssetUrl(resolved) ? "" : resolved;
+    if (isPdfAssetUrl(resolved)) return "";
+
+    if (resolved.startsWith("/") || resolved.startsWith("data:") || resolved.startsWith("blob:")) {
+        return resolved;
+    }
+
+    if (/^https:\/\/res\.cloudinary\.com\//i.test(resolved)) {
+        return resolved;
+    }
+
+    if (API_ORIGIN && resolved.startsWith(`${API_ORIGIN}/`)) {
+        return resolved;
+    }
+
+    if (typeof window !== "undefined" && resolved.startsWith(`${window.location.origin}/`)) {
+        return resolved;
+    }
+
+    return "";
 };
 
 export const resolvePdfUrl = (url) => {

@@ -6,7 +6,6 @@ import Loader from '../components/ui/Loader'; // Assuming this component exists
 
 export default function ProtectedRoute({ children, adminOnly = false }) {
     const { isAuthenticated, appUser, loadingAppUser } = useContext(AppContext);
-    console.log("ProtectedRoute check:", { isAuthenticated, appUser, loadingAppUser, adminOnly });
 
     if (loadingAppUser) {
         // Show a loading spinner while user data (including role) is being fetched

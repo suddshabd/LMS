@@ -103,8 +103,6 @@ import userService from '../services/userService.js';
 const userController = {
 
     syncUser: async (req, res) => {
-        console.log("🔥 [1] SYNC CONTROLLER HIT");
-
         try {
             const { clerkId, email, firstName, lastName, avatar } = req.body;
 

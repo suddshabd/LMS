@@ -90,6 +90,18 @@ app.use(
                     "https://sandbox.cashfree.com",
                     "https://payments.cashfree.com",
                 ],
+                workerSrc: [
+                    "'self'",
+                    "blob:",
+                    "https://*.clerk.com",
+                    "https://*.clerk.accounts.dev",
+                ],
+                formAction: [
+                    "'self'",
+                    "https://*.cashfree.com",
+                    "https://sandbox.cashfree.com",
+                    "https://payments.cashfree.com",
+                ],
                 fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
                 objectSrc: ["'none'"],
             },
@@ -131,10 +143,6 @@ app.use(express.urlencoded({ extended: true }));
 ====================================================== */
 
 app.use(clerkMiddleware());
-app.use((req, res, next) => {
-    console.log("AUTH OBJECT:", req.auth);
-    next();
-});
 
 /* ======================================================
    🗄️ DATABASE CONNECTION

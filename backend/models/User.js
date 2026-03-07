@@ -136,15 +136,4 @@ userSchema.virtual("fullName").get(function () {
     return `${this.firstName || ""} ${this.lastName || ""}`.trim();
 });
 
-/* ======================================================
-   🛡 SAFETY: Prevent accidental role overwrite
-====================================================== */
-
-userSchema.pre("save", function (next) {
-    if (this.isModified("role")) {
-        console.log(`⚠️ Role changed for user ${this.email}: ${this.role}`);
-    }
-    next();
-});
-
 export default mongoose.model("User", userSchema);
