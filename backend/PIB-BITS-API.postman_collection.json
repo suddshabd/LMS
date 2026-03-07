@@ -1,0 +1,124 @@
+{
+    "info": {
+        "name": "Pib Bits API",
+        "_postman_id": "pibbits-collection",
+        "description": "Full API collection for Pib Bits LMS",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Auth - Sync User",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer YOUR_CLERK_TOKEN"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:5003/api/auth/sync"
+                }
+            }
+        },
+        {
+            "name": "Get Current User",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer YOUR_CLERK_TOKEN"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:5003/api/auth/me"
+                }
+            }
+        },
+        {
+            "name": "Get All Courses",
+            "request": {
+                "method": "GET",
+                "url": {
+                    "raw": "http://localhost:5003/api/courses"
+                }
+            }
+        },
+        {
+            "name": "Create Course",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer YOUR_CLERK_TOKEN"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:5003/api/courses"
+                }
+            }
+        },
+        {
+            "name": "Create Payment Order",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer YOUR_CLERK_TOKEN"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:5003/api/payments/create-order"
+                }
+            }
+        },
+        {
+            "name": "Verify Payment",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer YOUR_CLERK_TOKEN"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:5003/api/payments/verify"
+                }
+            }
+        },
+        {
+            "name": "Get My Payments",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer YOUR_CLERK_TOKEN"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:5003/api/payments/my"
+                }
+            }
+        },
+        {
+            "name": "Admin Dashboard",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer YOUR_CLERK_TOKEN"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:5003/api/admin/dashboard"
+                }
+            }
+        }
+    ]
+}
