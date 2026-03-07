@@ -64,3 +64,7 @@ export const resolvePdfUrl = (url) => {
 
     return resolved.replace(/\/image\/upload\//i, "/raw/upload/");
 };
+
+export const hideBrokenImage = (event) => {
+    event.currentTarget.style.display = "none";
+};

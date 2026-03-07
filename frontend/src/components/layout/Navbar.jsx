@@ -24,12 +24,16 @@ export default function Navbar() {
 
     const handleSignInClick = async () => {
         try {
-            if (!isLoaded) return;
-            await clerk.openSignIn({
-                fallbackRedirectUrl: window.location.href,
+            if (!isLoaded) {
+                console.error("Clerk is not loaded yet. Check VITE_CLERK_PUBLISHABLE_KEY and allowed domains.");
+                return;
+            }
+
+            await clerk.redirectToSignIn({
+                returnBackUrl: window.location.href,
             });
         } catch (error) {
-            console.error("Sign-in modal failed, redirecting to sign-in:", error);
+            console.error("Sign-in redirect failed:", error);
             clerk.redirectToSignIn({
                 returnBackUrl: window.location.href,
             });

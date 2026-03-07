@@ -330,7 +330,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { AppContext } from '../context/AppContext';
 import CashfreePayment from '../components/payment/CashfreePayment';
-import { resolveCoverImageUrl, resolvePdfUrl } from '../utils/media';
+import { hideBrokenImage, resolveCoverImageUrl, resolvePdfUrl } from '../utils/media';
 
 export default function PdfDetails() {
     const { id } = useParams();
@@ -433,6 +433,7 @@ export default function PdfDetails() {
                             src={resolveCoverImageUrl(course.coverUrl)}
                             alt={course.title}
                             className="w-full h-72 object-cover rounded mb-6"
+                            onError={hideBrokenImage}
                         />
                     )}
 

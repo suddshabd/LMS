@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { AppContext } from '../../context/AppContext';
-import { resolveCoverImageUrl } from '../../utils/media';
+import { hideBrokenImage, resolveCoverImageUrl } from '../../utils/media';
 
 export default function PdfCard({ pdf, course }) {
     const { theme } = useContext(AppContext);
@@ -19,6 +19,7 @@ export default function PdfCard({ pdf, course }) {
                             src={coverSrc}
                             alt={data?.title}
                             className="w-full h-40 object-cover rounded-lg mb-3"
+                            onError={hideBrokenImage}
                         />
                     ) : (
                         <div className="text-5xl mb-3 text-center">{data?.image || '📄'}</div>

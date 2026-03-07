@@ -258,7 +258,7 @@ import { courseAPI } from '../services/apiService';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { AppContext } from '../context/AppContext';
-import { resolveCoverImageUrl } from '../utils/media';
+import { hideBrokenImage, resolveCoverImageUrl } from '../utils/media';
 
 const hasPublicCourseDetails = (course) =>
     Boolean(
@@ -389,6 +389,7 @@ export default function Explore() {
                                             src={resolveCoverImageUrl(course.coverUrl)}
                                             alt={course.title}
                                             className="w-full h-48 object-cover rounded mb-4"
+                                            onError={hideBrokenImage}
                                         />
                                     )}
 

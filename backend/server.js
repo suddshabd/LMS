@@ -27,8 +27,35 @@ const app = express();
    🔐 SECURITY MIDDLEWARE
 ====================================================== */
 
-// Helmet for secure HTTP headers
-app.use(helmet());
+// Helmet with CSP tuned for Clerk + Cloudinary in production
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            useDefaults: true,
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'unsafe-inline'", "https://*.clerk.com"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: [
+                    "'self'",
+                    "data:",
+                    "blob:",
+                    "https://*.clerk.com",
+                    "https://res.cloudinary.com",
+                ],
+                connectSrc: [
+                    "'self'",
+                    "https://*.clerk.com",
+                    "https://api.clerk.com",
+                    "https://clerk-telemetry.com",
+                ],
+                frameSrc: ["'self'", "https://*.clerk.com"],
+                fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+                objectSrc: ["'none'"],
+            },
+        },
+    })
+);
 
 // Rate limiting (protects against brute force & abuse)
 const apiLimiter = rateLimit({

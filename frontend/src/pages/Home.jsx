@@ -213,7 +213,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import { AppContext } from '../context/AppContext';
-import { resolveCoverImageUrl } from '../utils/media';
+import { hideBrokenImage, resolveCoverImageUrl } from '../utils/media';
 
 const hasPublicCourseDetails = (course) =>
     Boolean(
@@ -297,6 +297,7 @@ export default function Home() {
                                                 src={resolveCoverImageUrl(course.coverUrl)}
                                                 alt={course.title}
                                                 className="w-full h-48 object-cover rounded mb-4"
+                                                onError={hideBrokenImage}
                                             />
                                         )}
 
