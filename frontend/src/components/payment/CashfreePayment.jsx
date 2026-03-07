@@ -7,8 +7,24 @@ export default function CashfreePayment({ course, onSuccess }) {
 
     const loadCashfreeScript = () => {
         return new Promise((resolve) => {
+            const existingScript = document.querySelector(
+                'script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]'
+            );
+
+            if (existingScript) {
+                if (window.Cashfree) {
+                    resolve(true);
+                    return;
+                }
+
+                existingScript.addEventListener('load', () => resolve(true), { once: true });
+                existingScript.addEventListener('error', () => resolve(false), { once: true });
+                return;
+            }
+
             const script = document.createElement('script');
             script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+            script.async = true;
             script.onload = () => resolve(true);
             script.onerror = () => resolve(false);
             document.body.appendChild(script);
@@ -23,7 +39,7 @@ export default function CashfreePayment({ course, onSuccess }) {
             // Load Cashfree script
             const scriptLoaded = await loadCashfreeScript();
             if (!scriptLoaded) {
-                throw new Error('Failed to load Cashfree SDK');
+                throw new Error('Failed to load Cashfree SDK. Check CSP and network policy.');
             }
 
             // Create order
