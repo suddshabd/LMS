@@ -1,10 +1,9 @@
 import React, { useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import {
-    SignedIn,
-    SignedOut,
     UserButton,
-    SignInButton,
+    useAuth,
+    useClerk,
 } from "@clerk/clerk-react";
 import { AppContext } from "../../context/AppContext";
 import Button from "../ui/Button";
@@ -12,6 +11,8 @@ import Button from "../ui/Button";
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { theme, setTheme, appUser } = useContext(AppContext);
+    const { isLoaded, isSignedIn } = useAuth();
+    const clerk = useClerk();
 
     const toggleTheme = () => {
         setTheme(theme === "light" ? "dark" : "light");
@@ -19,6 +20,7 @@ export default function Navbar() {
 
     const isAdmin = appUser?.role === "admin";
     const isInstructor = appUser?.role === "instructor";
+    const shouldShowSignIn = !isLoaded || !isSignedIn;
 
     return (
         <nav
@@ -59,17 +61,18 @@ export default function Navbar() {
                             {theme === "light" ? "🌙" : "☀️"}
                         </button>
 
-                        {/* Signed Out */}
-                        <SignedOut>
-                            <SignInButton mode="modal">
-                                <Button variant="secondary" size="sm">
-                                    Sign In
-                                </Button>
-                            </SignInButton>
-                        </SignedOut>
+                        {shouldShowSignIn && (
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => clerk.openSignIn()}
+                            >
+                                Sign In
+                            </Button>
+                        )}
 
-                        {/* Signed In */}
-                        <SignedIn>
+                        {!shouldShowSignIn && (
+                            <>
                             <Link to="/dashboard" className="hover:opacity-80 transition">
                                 Dashboard
                             </Link>
@@ -102,7 +105,8 @@ export default function Navbar() {
                                     },
                                 }}
                             />
-                        </SignedIn>
+                            </>
+                        )}
                     </div>
 
                     {/* Mobile Menu Button */}
@@ -117,9 +121,9 @@ export default function Navbar() {
                             {theme === "light" ? "🌙" : "☀️"}
                         </button>
 
-                        <SignedIn>
+                        {!shouldShowSignIn && (
                             <UserButton afterSignOutUrl="/" />
-                        </SignedIn>
+                        )}
 
                         <button
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -144,15 +148,19 @@ export default function Navbar() {
                             Explore
                         </Link>
 
-                        <SignedOut>
-                            <SignInButton mode="modal">
-                                <Button variant="secondary" size="sm" className="w-full">
-                                    Sign In
-                                </Button>
-                            </SignInButton>
-                        </SignedOut>
+                        {shouldShowSignIn && (
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => clerk.openSignIn()}
+                            >
+                                Sign In
+                            </Button>
+                        )}
 
-                        <SignedIn>
+                        {!shouldShowSignIn && (
+                            <>
                             <Link to="/dashboard" className="block py-2">
                                 Dashboard
                             </Link>
@@ -168,7 +176,8 @@ export default function Navbar() {
                                     Creator
                                 </Link>
                             )}
-                        </SignedIn>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
