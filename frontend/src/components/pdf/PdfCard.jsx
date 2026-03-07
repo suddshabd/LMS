@@ -3,18 +3,20 @@ import { Link } from 'react-router-dom';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { AppContext } from '../../context/AppContext';
+import { resolveMediaUrl } from '../../utils/media';
 
 export default function PdfCard({ pdf, course }) {
     const { theme } = useContext(AppContext);
     const data = pdf || course;
+    const coverSrc = resolveMediaUrl(data?.coverUrl || data?.cover);
 
     return (
         <Link to={`/pdf/${data?._id || data?.id || 1}`}>
             <Card hoverable className={`h-full cursor-pointer hover:shadow-xl transition-all ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
                 <div className="mb-4">
-                    {(data?.coverUrl || data?.cover) ? (
+                    {coverSrc ? (
                         <img
-                            src={data?.coverUrl || data?.cover}
+                            src={coverSrc}
                             alt={data?.title}
                             className="w-full h-40 object-cover rounded-lg mb-3"
                         />

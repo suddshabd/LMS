@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
     UserButton,
     useAuth,
-    useClerk,
+    SignInButton,
 } from "@clerk/clerk-react";
 import { AppContext } from "../../context/AppContext";
 import Button from "../ui/Button";
@@ -12,7 +12,6 @@ export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { theme, setTheme, appUser } = useContext(AppContext);
     const { isLoaded, isSignedIn } = useAuth();
-    const clerk = useClerk();
 
     const toggleTheme = () => {
         setTheme(theme === "light" ? "dark" : "light");
@@ -20,7 +19,7 @@ export default function Navbar() {
 
     const isAdmin = appUser?.role === "admin";
     const isInstructor = appUser?.role === "instructor";
-    const shouldShowSignIn = !isLoaded || !isSignedIn;
+    const shouldShowSignIn = !isSignedIn;
 
     return (
         <nav
@@ -62,13 +61,15 @@ export default function Navbar() {
                         </button>
 
                         {shouldShowSignIn && (
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => clerk.openSignIn()}
-                            >
-                                Sign In
-                            </Button>
+                            <SignInButton mode="modal">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    disabled={!isLoaded}
+                                >
+                                    Sign In
+                                </Button>
+                            </SignInButton>
                         )}
 
                         {!shouldShowSignIn && (
@@ -149,14 +150,16 @@ export default function Navbar() {
                         </Link>
 
                         {shouldShowSignIn && (
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                className="w-full"
-                                onClick={() => clerk.openSignIn()}
-                            >
-                                Sign In
-                            </Button>
+                            <SignInButton mode="modal">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="w-full"
+                                    disabled={!isLoaded}
+                                >
+                                    Sign In
+                                </Button>
+                            </SignInButton>
                         )}
 
                         {!shouldShowSignIn && (

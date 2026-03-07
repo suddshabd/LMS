@@ -330,6 +330,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { AppContext } from '../context/AppContext';
 import CashfreePayment from '../components/payment/CashfreePayment';
+import { resolveMediaUrl } from '../utils/media';
 
 const getSafePdfUrl = (url) => {
     if (!url || typeof url !== "string") return url;
@@ -437,9 +438,9 @@ export default function PdfDetails() {
                 <div className="lg:col-span-2">
 
                     {/* Cover Image */}
-                    {course.coverUrl && (
+                    {resolveMediaUrl(course.coverUrl) && (
                         <img
-                            src={course.coverUrl}
+                            src={resolveMediaUrl(course.coverUrl)}
                             alt={course.title}
                             className="w-full h-72 object-cover rounded mb-6"
                         />

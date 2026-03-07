@@ -213,6 +213,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import { AppContext } from '../context/AppContext';
+import { resolveMediaUrl } from '../utils/media';
 
 const hasPublicCourseDetails = (course) =>
     Boolean(
@@ -291,9 +292,9 @@ export default function Home() {
                                 <Link to={`/pdf/${course._id}`} key={course._id}>
                                     <Card hoverable className="h-full">
 
-                                        {course.coverUrl && (
+                                        {resolveMediaUrl(course.coverUrl) && (
                                             <img
-                                                src={course.coverUrl}
+                                                src={resolveMediaUrl(course.coverUrl)}
                                                 alt={course.title}
                                                 className="w-full h-48 object-cover rounded mb-4"
                                             />
