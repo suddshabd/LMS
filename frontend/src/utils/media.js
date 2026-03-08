@@ -48,6 +48,8 @@ export const resolveCoverImageUrl = (url) => {
     const resolved = resolveMediaUrl(url);
     if (!resolved) return "";
     if (isPdfAssetUrl(resolved)) return "";
+    if (/^https:\/\/res\.cloudinary\.com\/demo\//i.test(resolved)) return "";
+    if (/\/upload\/v1\/cover\.jpg$/i.test(resolved)) return "";
 
     if (resolved.startsWith("/") || resolved.startsWith("data:") || resolved.startsWith("blob:")) {
         return resolved;
