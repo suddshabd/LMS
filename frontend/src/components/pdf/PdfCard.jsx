@@ -18,6 +18,7 @@ export default function PdfCard({ pdf, course }) {
                         <img
                             src={coverSrc}
                             alt={data?.title}
+                            loading="lazy"
                             className="w-full h-40 object-cover rounded-lg mb-3"
                             onError={hideBrokenImage}
                         />

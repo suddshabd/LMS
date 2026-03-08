@@ -10,11 +10,13 @@ import {
 
 import upload from "../middleware/multer.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { validateBody, validateQuery } from "../middleware/validate.js";
+import { courseQuerySchema, updateCourseSchema } from "../validation/schemas.js";
 
 const router = express.Router();
 
 // Public
-router.get("/", getCourses);
+router.get("/", validateQuery(courseQuerySchema), getCourses);
 router.get("/:id", getCourseById);
 
 // Admin only
@@ -31,7 +33,7 @@ router.post(
     createCourse
 );
 
-router.put("/:id", requireAuth(), requireAdmin, updateCourse);
+router.put("/:id", requireAuth(), requireAdmin, validateBody(updateCourseSchema), updateCourse);
 router.delete("/:id", requireAuth(), requireAdmin, deleteCourse);
 
 export default router;

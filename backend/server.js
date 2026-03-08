@@ -8,11 +8,16 @@ import rateLimit from "express-rate-limit";
 import { clerkMiddleware } from "@clerk/express";
 import path from "path";
 import { fileURLToPath } from "url";
+import * as Sentry from "@sentry/node";
+import { requestContext } from "./middleware/requestContext.js";
+import { httpLogger, logger } from "./config/logger.js";
 
 // Load environment variables
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, ".env") });
+if (process.env.NODE_ENV !== "test") {
+    dotenv.config({ path: path.join(__dirname, ".env") });
+}
 
 // Import routes
 import courseRoutes from "./routes/courseRoutes.js";
@@ -20,8 +25,21 @@ import userRoutes from "./routes/userRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import couponRoutes from "./routes/couponRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import progressRoutes from "./routes/progressRoutes.js";
+import wishlistRoutes from "./routes/wishlistRoutes.js";
 
 const app = express();
+const appStartTime = Date.now();
+
+if (process.env.SENTRY_DSN) {
+    Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        environment: process.env.NODE_ENV || "development",
+        tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE || 0.1),
+    });
+}
 
 /* ======================================================
    🔐 SECURITY MIDDLEWARE
@@ -109,6 +127,9 @@ app.use(
     })
 );
 
+app.use(requestContext);
+app.use(httpLogger);
+
 // Rate limiting (protects against brute force & abuse)
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -148,17 +169,23 @@ app.use(clerkMiddleware());
    🗄️ DATABASE CONNECTION
 ====================================================== */
 
-mongoose
-    .connect(process.env.MONGODB_URI, {
-        serverSelectionTimeoutMS: 5000,
-    })
-    .then(() => {
-        console.log("✅ MongoDB connected successfully");
-    })
-    .catch((err) => {
-        console.error("❌ MongoDB connection error:", err.message);
-        process.exit(1);
-    });
+if (process.env.MONGODB_URI) {
+    mongoose
+        .connect(process.env.MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000,
+        })
+        .then(() => {
+            logger.info("MongoDB connected successfully");
+        })
+        .catch((err) => {
+            logger.error({ err: err.message }, "MongoDB connection error");
+            if (process.env.NODE_ENV !== "test") {
+                process.exit(1);
+            }
+        });
+} else {
+    logger.warn("MONGODB_URI is not configured; database-dependent routes may fail.");
+}
 
 /* ======================================================
    📌 API ROUTES
@@ -169,6 +196,10 @@ app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/coupons", couponRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/progress", progressRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 
 /* ======================================================
    ❤️ HEALTH CHECK
@@ -181,6 +212,29 @@ app.get("/api/health", (req, res) => {
             mongoose.connection.readyState === 1
                 ? "Connected"
                 : "Disconnected",
+        uptimeSeconds: Math.floor((Date.now() - appStartTime) / 1000),
+        memory: process.memoryUsage(),
+        environment: process.env.NODE_ENV || "development",
+        timestamp: new Date(),
+        requestId: req.id,
+    });
+});
+
+app.get("/api/ready", (req, res) => {
+    const dbConnected = mongoose.connection.readyState === 1;
+    if (!dbConnected) {
+        return res.status(503).json({
+            status: "not_ready",
+            database: "Disconnected",
+            requestId: req.id,
+            timestamp: new Date(),
+        });
+    }
+
+    return res.status(200).json({
+        status: "ready",
+        database: "Connected",
+        requestId: req.id,
         timestamp: new Date(),
     });
 });
@@ -191,7 +245,16 @@ app.get("/api/health", (req, res) => {
 
 if (process.env.NODE_ENV === "production") {
     const frontendDistPath = path.resolve(__dirname, "../frontend/dist");
-    app.use(express.static(frontendDistPath));
+    app.use(
+        express.static(frontendDistPath, {
+            maxAge: "1h",
+            setHeaders: (res, filePath) => {
+                if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+                    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+                }
+            },
+        })
+    );
 
     // SPA fallback (all non-API routes -> frontend)
     app.get("*", (req, res, next) => {
@@ -216,11 +279,15 @@ app.use("/api", (req, res) => {
 ====================================================== */
 
 app.use((err, req, res, next) => {
-    console.error("🔥 Server Error:", err);
+    if (process.env.SENTRY_DSN) {
+        Sentry.captureException(err, { tags: { requestId: req.id } });
+    }
+    logger.error({ err, requestId: req.id }, "Server error");
 
     res.status(err.status || 500).json({
         success: false,
         message: err.message || "Internal Server Error",
+        requestId: req.id,
         ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
     });
 });
@@ -230,23 +297,32 @@ app.use((err, req, res, next) => {
 ====================================================== */
 
 const PORT = process.env.PORT || 5003;
+let server = null;
 
-const server = app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`🔗 Frontend allowed: ${process.env.FRONTEND_URL}`);
-    console.log(`📝 Health check: http://localhost:${PORT}/api/health`);
-});
+export const startServer = () =>
+    app.listen(PORT, () => {
+        logger.info(`Server running on http://localhost:${PORT}`);
+        logger.info(`Frontend allowed: ${process.env.FRONTEND_URL}`);
+        logger.info(`Health check: http://localhost:${PORT}/api/health`);
+    });
+
+if (process.env.NODE_ENV !== "test") {
+    server = startServer();
+}
 
 /* ======================================================
    📴 GRACEFUL SHUTDOWN
 ====================================================== */
 
 process.on("SIGTERM", () => {
-    console.log("SIGTERM received. Shutting down gracefully...");
+    logger.info("SIGTERM received. Shutting down gracefully...");
+    if (!server) process.exit(0);
     server.close(() => {
         mongoose.connection.close(false, () => {
-            console.log("MongoDB connection closed.");
+            logger.info("MongoDB connection closed.");
             process.exit(0);
         });
     });
 });
+
+export { app };

@@ -1,5 +1,6 @@
 import { requireAuth } from "@clerk/express";
 import User from "../models/User.js";
+import { logger } from "../config/logger.js";
 
 // Just re-export Clerk middleware directly
 export { requireAuth };
@@ -34,7 +35,7 @@ export const requireAdmin = async (req, res, next) => {
 
         next();
     } catch (error) {
-        console.error("requireAdmin error:", error);
+        logger.error({ err: error }, "requireAdmin error");
         res.status(500).json({
             success: false,
             error: "Server error",

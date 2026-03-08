@@ -1,5 +1,6 @@
 // backend/services/userService.js
 import User from '../models/User.js';
+import { logger } from '../config/logger.js';
 
 const userService = {
     /**
@@ -44,7 +45,7 @@ const userService = {
             }
 
         } catch (error) {
-            console.error("Error syncing user:", error);
+            logger.error({ err: error }, "Error syncing user");
             return {
                 success: false,
                 error: error.message
@@ -70,16 +71,6 @@ const userService = {
     //         return { success: false, error: error.message };
     //     }
     // },
-    getUserByClerkId: async (clerkId) => {
-        const user = await User.findOne({ clerkId });
-
-        if (!user) {
-            return { success: false, error: "User not found" };
-        }
-
-        return { success: true, user };
-    },
-
     getUserByClerkId: async (clerkId) => {
         const user = await User.findOne({ clerkId });
 

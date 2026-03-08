@@ -216,6 +216,9 @@
 import Payment from "../models/Payment.js";
 import Course from "../models/Course.js";
 import User from "../models/User.js";
+import { getFinalPrice } from "../utils/pricing.js";
+import Coupon from "../models/Coupon.js";
+import { logger } from "../config/logger.js";
 
 const CASHFREE_BASE_URL =
     process.env.CASHFREE_BASE_URL || "https://sandbox.cashfree.com/pg";
@@ -243,7 +246,7 @@ export const createOrder = async (req, res) => {
             return res.status(401).json({ success: false, message: "Unauthorized" });
         }
 
-        const { courseId } = req.body;
+        const { courseId, couponCode } = req.body;
 
         if (!courseId) {
             return res.status(400).json({ success: false, message: "Course ID required" });
@@ -276,9 +279,30 @@ export const createOrder = async (req, res) => {
         }
 
         const orderId = `ORD_${course._id}_${Date.now()}`;
+        let baseAmount = getFinalPrice(course.price, course.discount || 0);
+        let appliedCoupon = null;
+
+        if (couponCode) {
+            const coupon = await Coupon.findOne({ code: String(couponCode).toUpperCase().trim() });
+            if (!coupon || !coupon.isValidNow()) {
+                return res.status(400).json({ success: false, message: "Invalid or expired coupon" });
+            }
+
+            if (coupon.type === "percent") {
+                baseAmount = getFinalPrice(baseAmount, coupon.value);
+            } else {
+                baseAmount = Math.max(0, Math.round(baseAmount - Number(coupon.value || 0)));
+            }
+
+            coupon.usedCount += 1;
+            await coupon.save();
+            appliedCoupon = coupon.code;
+        }
+
+        const finalAmount = baseAmount;
         const cashfreePayload = {
             order_id: orderId,
-            order_amount: Number(course.price),
+            order_amount: finalAmount,
             order_currency: "INR",
             customer_details: {
                 customer_id: user._id.toString(),
@@ -310,7 +334,7 @@ export const createOrder = async (req, res) => {
             razorpayOrderId: order.order_id,
             user: user._id,      // ✅ ObjectId reference
             course: course._id,  // ✅ ObjectId reference
-            amount: course.price,
+            amount: finalAmount,
             currency: "INR",
             status: "created",
             metadata: {
@@ -318,6 +342,7 @@ export const createOrder = async (req, res) => {
                 studentName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
                 courseTitle: course.title,
                 cfOrderId: order.cf_order_id,
+                couponCode: appliedCoupon,
             }
         });
 
@@ -326,13 +351,13 @@ export const createOrder = async (req, res) => {
             data: {
                 orderId: order.order_id,
                 paymentSessionId: order.payment_session_id,
-                amount: course.price,
+                amount: finalAmount,
                 currency: "INR",
                 courseName: course.title,
             },
         });
     } catch (error) {
-        console.error("Create order error:", error);
+        logger.error({ err: error }, "Create order error");
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -426,7 +451,7 @@ export const verifyPayment = async (req, res) => {
             message: "Payment verified successfully",
         });
     } catch (error) {
-        console.error("Verify payment error:", error);
+        logger.error({ err: error }, "Verify payment error");
         res.status(500).json({ success: false, message: error.message });
     }
 };

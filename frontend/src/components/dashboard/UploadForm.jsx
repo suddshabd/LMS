@@ -1,21 +1,32 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useUser } from "@clerk/clerk-react";
-import { useNavigate } from 'react-router-dom';
+import { useAuth, useUser } from "@clerk/clerk-react";
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { courseAPI } from '../../services/apiService';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
 import { AppContext } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
 
 const getFileSizeInMB = (sizeInBytes) => {
     return (sizeInBytes / (1024 * 1024)).toFixed(2);
 };
 
 export default function UploadForm() {
+    const { courseId: routeCourseId } = useParams();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
+    const queryEditCourseId = searchParams.get('edit');
+    const stateEditCourseId = location.state?.editCourseId;
+    const stateCourseData = location.state?.courseData;
+    const editCourseId = routeCourseId || queryEditCourseId || stateEditCourseId || null;
+    const isEditMode = Boolean(editCourseId || stateCourseData);
+
     const [formData, setFormData] = useState({
         title: '',
         category: 'Banking',
         subcategory: '',
         price: '',
+        discount: '0',
         description: '',
         pages: '',
         features: '',
@@ -27,8 +38,11 @@ export default function UploadForm() {
     const [pdfPreview, setPdfPreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
-    const { isLoaded, isSignedIn } = useUser();
+    const [loadingExistingCourse, setLoadingExistingCourse] = useState(false);
+    const { isLoaded, isSignedIn, user } = useUser();
+    const { getToken } = useAuth();
     const { theme } = useContext(AppContext);
+    const { showToast } = useToast();
     const navigate = useNavigate();
 
     const categories = ['Banking', 'SSC', 'Government', 'General'];
@@ -48,6 +62,64 @@ export default function UploadForm() {
             if (pdfPreview) URL.revokeObjectURL(pdfPreview);
         };
     }, [pdfPreview]);
+
+    useEffect(() => {
+        const fetchExistingCourse = async () => {
+            if (!isEditMode) return;
+
+            if (stateCourseData) {
+                setFormData((prev) => ({
+                    ...prev,
+                    title: stateCourseData.title || '',
+                    category: stateCourseData.category || 'Banking',
+                    subcategory: stateCourseData.subcategory || '',
+                    price: String(stateCourseData.price ?? ''),
+                    discount: String(stateCourseData.discount ?? 0),
+                    description: stateCourseData.description || '',
+                    pages: String(stateCourseData.pages ?? ''),
+                    features: Array.isArray(stateCourseData.features) ? stateCourseData.features.join(', ') : '',
+                    pdf: null,
+                    cover: null,
+                }));
+                setCoverPreview(stateCourseData.coverUrl || null);
+                setPdfPreview(null);
+            }
+
+            if (!editCourseId) return;
+
+            try {
+                setLoadingExistingCourse(true);
+                const response = await courseAPI.getCourseById(editCourseId);
+
+                if (!response?.success || !response?.data) {
+                    throw new Error('Course not found');
+                }
+
+                const course = response.data;
+                setFormData((prev) => ({
+                    ...prev,
+                    title: course.title || '',
+                    category: course.category || 'Banking',
+                    subcategory: course.subcategory || '',
+                    price: String(course.price ?? ''),
+                    discount: String(course.discount ?? 0),
+                    description: course.description || '',
+                    pages: String(course.pages ?? ''),
+                    features: Array.isArray(course.features) ? course.features.join(', ') : '',
+                    pdf: null,
+                    cover: null,
+                }));
+                setCoverPreview(course.coverUrl || null);
+                setPdfPreview(null);
+            } catch (error) {
+                setMessage(`❌ ${error.message}`);
+            } finally {
+                setLoadingExistingCourse(false);
+            }
+        };
+
+        fetchExistingCourse();
+    }, [isEditMode, editCourseId, stateCourseData]);
 
     const handleFileChange = (e) => {
         const { name, files } = e.target;
@@ -171,6 +243,38 @@ export default function UploadForm() {
         setMessage('');
 
         try {
+            if (isEditMode) {
+                if (!formData.title || !formData.price) {
+                    throw new Error("Please fill title and price");
+                }
+
+                const token = await getToken();
+                const payload = {
+                    title: formData.title,
+                    category: formData.category,
+                    subcategory: formData.subcategory,
+                    price: Number(formData.price),
+                    discount: Number(formData.discount || 0),
+                    description: formData.description,
+                    pages: Number(formData.pages) || 0,
+                    features: formData.features
+                        .split(',')
+                        .map((item) => item.trim())
+                        .filter(Boolean),
+                };
+
+                const response = await courseAPI.updateCourse(editCourseId, payload, token);
+
+                if (!response.success) {
+                    throw new Error(response.message || "Course update failed");
+                }
+
+                setMessage("✅ Course updated successfully!");
+                showToast("Course updated successfully", "success");
+                setTimeout(() => navigate("/admin"), 1200);
+                return;
+            }
+
             if (!formData.title || !formData.price || !formData.pdf || !formData.cover) {
                 throw new Error("Please fill all required fields");
             }
@@ -181,6 +285,7 @@ export default function UploadForm() {
             formPayload.append("category", formData.category);
             formPayload.append("subcategory", formData.subcategory);
             formPayload.append("price", formData.price);
+            formPayload.append("discount", formData.discount || 0);
             formPayload.append("description", formData.description);
             formPayload.append("pages", formData.pages);
             formPayload.append("features", formData.features);
@@ -195,12 +300,14 @@ export default function UploadForm() {
             }
 
             setMessage("✅ Course uploaded successfully!");
+            showToast("Course uploaded successfully", "success");
 
             setFormData({
                 title: '',
                 category: 'Banking',
                 subcategory: '',
                 price: '',
+                discount: '0',
                 description: '',
                 pages: '',
                 features: '',
@@ -215,12 +322,23 @@ export default function UploadForm() {
 
         } catch (error) {
             setMessage(`❌ ${error.message}`);
+            showToast(error.message || "Operation failed", "error");
         } finally {
             setLoading(false);
         }
     };
 
     if (!isLoaded) {
+        return (
+            <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-950 text-gray-100' : 'bg-slate-100 text-slate-900'} py-12 px-4`}>
+                <div className="mx-auto max-w-5xl animate-pulse">
+                    <div className={`h-24 rounded-2xl ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`} />
+                </div>
+            </div>
+        );
+    }
+
+    if (loadingExistingCourse) {
         return (
             <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-950 text-gray-100' : 'bg-slate-100 text-slate-900'} py-12 px-4`}>
                 <div className="mx-auto max-w-5xl animate-pulse">
@@ -261,12 +379,28 @@ export default function UploadForm() {
                         }`}>
                         <div className="flex items-center justify-between mb-8">
                             <div>
-                                <h1 className="text-3xl font-extrabold tracking-tight">Upload New Course</h1>
+                                <h1 className="text-3xl font-extrabold tracking-tight">
+                                    {isEditMode ? 'Edit Course' : 'Upload New Course'}
+                                </h1>
                                 <p className={`mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'}`}>
-                                    Add details, upload files, and publish in one flow.
+                                    {isEditMode
+                                        ? 'Update details and save changes.'
+                                        : 'Add details, upload files, and publish in one flow.'}
                                 </p>
                             </div>
-                            <div className="hidden sm:block h-10 w-10 rounded-full bg-cyan-500/20 animate-pulse" />
+                            <div className="hidden sm:block h-12 w-12 rounded-full overflow-hidden border border-cyan-500/40 shadow-lg shadow-cyan-500/20">
+                                {user?.imageUrl ? (
+                                    <img
+                                        src={user.imageUrl}
+                                        alt={user?.fullName || 'User avatar'}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="h-full w-full flex items-center justify-center bg-cyan-500/20 text-cyan-300 font-semibold">
+                                        {(user?.firstName || 'U').charAt(0).toUpperCase()}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {message && (
@@ -341,6 +475,20 @@ export default function UploadForm() {
                                 </div>
 
                                 <div>
+                                    <label className="block text-sm font-medium mb-2">Discount (%)</label>
+                                    <input
+                                        type="number"
+                                        name="discount"
+                                        min="0"
+                                        max="100"
+                                        value={formData.discount}
+                                        onChange={handleInputChange}
+                                        placeholder="10"
+                                        className={inputClass}
+                                    />
+                                </div>
+
+                                <div>
                                     <label className="block text-sm font-medium mb-2">Pages</label>
                                     <input
                                         type="number"
@@ -387,7 +535,7 @@ export default function UploadForm() {
                                         onChange={handleFileChange}
                                         accept="image/*"
                                         className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-2 file:font-medium file:bg-cyan-600 file:text-white hover:file:bg-cyan-700"
-                                        required
+                                        required={!isEditMode}
                                     />
                                     {coverPreview && (
                                         <img
@@ -406,7 +554,7 @@ export default function UploadForm() {
                                         onChange={handleFileChange}
                                         accept=".pdf"
                                         className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-2 file:font-medium file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
-                                        required
+                                        required={!isEditMode}
                                     />
 
                                     {formData.pdf && (
@@ -432,7 +580,7 @@ export default function UploadForm() {
                                 loading={loading}
                                 className="w-full py-3 text-base font-semibold shadow-lg shadow-cyan-500/20 hover:scale-[1.01] transition-transform duration-300"
                             >
-                                Upload Course
+                                {isEditMode ? 'Save Changes' : 'Upload Course'}
                             </Button>
                         </form>
                     </Card>

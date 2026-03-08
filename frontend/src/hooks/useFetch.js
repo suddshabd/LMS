@@ -31,7 +31,7 @@ export default function useFetch(url, options = {}) {
         };
 
         fetchData();
-    }, [url]);
+    }, [options, url]);
 
     return { data, loading, error };
 }

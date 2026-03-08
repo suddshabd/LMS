@@ -28,11 +28,14 @@ import {
     getAllPayments
 } from "../controllers/paymentController.js";
 import { requireAuth } from "@clerk/express";
+import { validateBody } from "../middleware/validate.js";
+import { paymentLimiter } from "../middleware/rateLimiters.js";
+import { createOrderSchema, verifyPaymentSchema } from "../validation/schemas.js";
 
 const router = express.Router();
 
-router.post("/create-order", requireAuth(), createOrder);
-router.post("/verify", requireAuth(), verifyPayment);
+router.post("/create-order", paymentLimiter, requireAuth(), validateBody(createOrderSchema), createOrder);
+router.post("/verify", paymentLimiter, requireAuth(), validateBody(verifyPaymentSchema), verifyPayment);
 router.get("/my", requireAuth(), getMyPayments);
 router.get("/admin/all", requireAuth(), getAllPayments);
 

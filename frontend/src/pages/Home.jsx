@@ -205,15 +205,19 @@
 // }
 
 
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { SignedOut } from '@clerk/clerk-react';
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { courseAPI } from '../services/apiService';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
+import Loader from '../components/ui/Loader';
 import { AppContext } from '../context/AppContext';
 import { hideBrokenImage, resolveCoverImageUrl } from '../utils/media';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const hasPublicCourseDetails = (course) =>
     Boolean(
@@ -227,9 +231,84 @@ const hasPublicCourseDetails = (course) =>
     );
 
 export default function Home() {
+    const homeRef = useRef(null);
     const { theme, appUser } = useContext(AppContext);
     const [featuredCourses, setFeaturedCourses] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    useLayoutEffect(() => {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+        const ctx = gsap.context(() => {
+            const heroTl = gsap.timeline();
+            heroTl.from(".hero-anim", {
+                opacity: 0,
+                y: 30,
+                duration: 0.75,
+                stagger: 0.12,
+                ease: "power3.out",
+            });
+
+            gsap.to(".hero-orb-a", {
+                y: -20,
+                x: 16,
+                duration: 5.4,
+                repeat: -1,
+                yoyo: true,
+                ease: "sine.inOut",
+            });
+
+            gsap.to(".hero-orb-b", {
+                y: 18,
+                x: -14,
+                duration: 6.2,
+                repeat: -1,
+                yoyo: true,
+                ease: "sine.inOut",
+            });
+
+            gsap.from(".featured-head", {
+                opacity: 0,
+                y: 20,
+                duration: 0.55,
+                ease: "power2.out",
+                scrollTrigger: {
+                    trigger: ".featured-head",
+                    start: "top 85%",
+                    once: true,
+                },
+            });
+
+            gsap.from(".featured-cta", {
+                opacity: 0,
+                y: 18,
+                duration: 0.5,
+                ease: "power2.out",
+                scrollTrigger: {
+                    trigger: ".featured-cta",
+                    start: "top 92%",
+                    once: true,
+                },
+            });
+
+            const cards = gsap.utils.toArray(".featured-card");
+            cards.forEach((card) => {
+                gsap.from(card, {
+                    opacity: 0,
+                    y: 24,
+                    duration: 0.58,
+                    ease: "power2.out",
+                    scrollTrigger: {
+                        trigger: card,
+                        start: "top 90%",
+                        once: true,
+                    },
+                });
+            });
+        }, homeRef);
+
+        return () => ctx.revert();
+    }, [featuredCourses.length]);
 
     useEffect(() => {
         const fetchCourses = async () => {
@@ -243,8 +322,8 @@ export default function Home() {
                     const cleanCourses = (res.data || []).filter(hasPublicCourseDetails);
                     setFeaturedCourses(cleanCourses.slice(0, 6));
                 }
-            } catch (err) {
-                console.error("Home fetch error:", err);
+            } catch {
+                setFeaturedCourses([]);
             } finally {
                 setLoading(false);
             }
@@ -254,22 +333,31 @@ export default function Home() {
     }, [appUser?._id, appUser?.role]);
 
     if (loading) {
-        return <div className="p-10 text-center">Loading courses...</div>;
+        return (
+            <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4">
+                <Loader />
+                <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Loading courses...
+                </p>
+            </div>
+        );
     }
 
     return (
-        <div className="w-full">
+        <div className="w-full" ref={homeRef}>
 
             {/* Hero Section */}
-            <section className="bg-gradient-to-r from-blue-600 to-indigo-800 text-white py-20">
+            <section className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-800 text-white py-20">
+                <div className="hero-orb-a absolute -top-12 -left-10 h-44 w-44 rounded-full bg-cyan-300/20 blur-2xl" />
+                <div className="hero-orb-b absolute -bottom-16 -right-12 h-56 w-56 rounded-full bg-indigo-300/20 blur-2xl" />
                 <div className="container mx-auto px-4 text-center">
-                    <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                    <h1 className="hero-anim text-4xl md:text-5xl font-bold mb-6">
                         Master Your Exams with Premium Study Materials
                     </h1>
-                    <p className="text-lg text-blue-100 mb-8">
+                    <p className="hero-anim text-lg text-blue-100 mb-8">
                         Banking, SSC, UPSC, Railway & more.
                     </p>
-                    <Link to="/explore">
+                    <Link to="/explore" className="hero-anim inline-block">
                         <Button size="lg">Explore Courses →</Button>
                     </Link>
                 </div>
@@ -278,7 +366,7 @@ export default function Home() {
             {/* Featured Courses */}
             <section className="py-16">
                 <div className="container mx-auto px-4">
-                    <h2 className="text-3xl font-bold text-center mb-10">
+                    <h2 className="featured-head text-3xl font-bold text-center mb-10">
                         Featured Courses
                     </h2>
 
@@ -290,12 +378,13 @@ export default function Home() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {featuredCourses.map(course => (
                                 <Link to={`/pdf/${course._id}`} key={course._id}>
-                                    <Card hoverable className="h-full">
+                                    <Card hoverable className="h-full featured-card">
 
                                         {resolveCoverImageUrl(course.coverUrl) && (
                                             <img
                                                 src={resolveCoverImageUrl(course.coverUrl)}
                                                 alt={course.title}
+                                                loading="lazy"
                                                 className="w-full h-48 object-cover rounded mb-4"
                                                 onError={hideBrokenImage}
                                             />
@@ -327,7 +416,7 @@ export default function Home() {
                         </div>
                     )}
 
-                    <div className="text-center mt-10">
+                    <div className="featured-cta text-center mt-10">
                         <Link to="/explore">
                             <Button size="lg">View All Courses</Button>
                         </Link>

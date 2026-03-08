@@ -4,6 +4,8 @@ import { paymentAPI } from '../../services/apiService';
 export default function CashfreePayment({ course, onSuccess }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [couponCode, setCouponCode] = useState('');
+    const [payableAmount, setPayableAmount] = useState(Number(course?.price) || 0);
 
     const loadCashfreeScript = () => {
         return new Promise((resolve) => {
@@ -43,13 +45,14 @@ export default function CashfreePayment({ course, onSuccess }) {
             }
 
             // Create order
-            const orderResponse = await paymentAPI.createOrder(course._id);
+            const orderResponse = await paymentAPI.createOrder(course._id, couponCode.trim().toUpperCase());
 
             if (!orderResponse.success) {
                 throw new Error(orderResponse.message || 'Unable to create order');
             }
 
             const { orderId, paymentSessionId } = orderResponse.data;
+            setPayableAmount(Number(orderResponse.data?.amount) || Number(course?.price) || 0);
 
             if (!paymentSessionId) {
                 throw new Error('Cashfree payment session not received from backend');
@@ -87,6 +90,13 @@ export default function CashfreePayment({ course, onSuccess }) {
                 </div>
             )}
 
+            <input
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                placeholder="Coupon code (optional)"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+            />
+
             <button
                 onClick={handlePayment}
                 disabled={loading}
@@ -95,7 +105,7 @@ export default function CashfreePayment({ course, onSuccess }) {
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
             >
-                {loading ? 'Processing...' : `Pay ₹${course.price} with Cashfree`}
+                {loading ? 'Processing...' : `Pay ₹${payableAmount} with Cashfree`}
             </button>
         </div>
     );

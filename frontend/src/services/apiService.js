@@ -253,8 +253,8 @@ export const courseAPI = {
 */
 
 export const paymentAPI = {
-    createOrder: (courseId) =>
-        api.post("/payments/create-order", { courseId }),
+    createOrder: (courseId, couponCode = "") =>
+        api.post("/payments/create-order", { courseId, couponCode }),
 
     verifyPayment: (payload) =>
         api.post("/payments/verify", payload),
@@ -274,7 +274,11 @@ export const paymentAPI = {
 
 export const adminAPI = {
     getDashboardStats: (token) =>
-        api.get("/admin/stats", {
+        api.get("/admin/dashboard", {
+            headers: { Authorization: `Bearer ${token}` },
+        }),
+    getInstructorAnalytics: (token) =>
+        api.get("/admin/analytics/instructor", {
             headers: { Authorization: `Bearer ${token}` },
         }),
 
@@ -301,6 +305,57 @@ export const adminAPI = {
 
 /*
 |--------------------------------------------------------------------------
+| REVIEW API
+|--------------------------------------------------------------------------
+*/
+
+export const reviewAPI = {
+    submitReview: (payload) => api.post("/reviews", payload),
+    getCourseReviews: (courseId) => api.get(`/reviews/course/${courseId}`),
+    moderateReview: (reviewId, status) => api.patch(`/reviews/${reviewId}/moderate`, { status }),
+};
+
+/*
+|--------------------------------------------------------------------------
+| PROGRESS API
+|--------------------------------------------------------------------------
+*/
+
+export const progressAPI = {
+    getProgress: (courseId) => api.get(`/progress/${courseId}`),
+    getBulkProgress: (courseIds = []) =>
+        api.get("/progress", {
+            params: { courseIds: courseIds.join(",") },
+        }),
+    updateProgress: (courseId, payload) => api.put(`/progress/${courseId}`, payload),
+};
+
+/*
+|--------------------------------------------------------------------------
+| WISHLIST API
+|--------------------------------------------------------------------------
+*/
+
+export const wishlistAPI = {
+    getWishlist: () => api.get("/wishlist"),
+    addToWishlist: (courseId) => api.post("/wishlist", { courseId }),
+    removeFromWishlist: (courseId) => api.delete(`/wishlist/${courseId}`),
+};
+
+/*
+|--------------------------------------------------------------------------
+| COUPON API
+|--------------------------------------------------------------------------
+*/
+
+export const couponAPI = {
+    getCoupons: () => api.get("/coupons"),
+    createCoupon: (payload) => api.post("/coupons", payload),
+    updateCoupon: (couponId, payload) => api.put(`/coupons/${couponId}`, payload),
+};
+
+/*
+|--------------------------------------------------------------------------
 | GLOBAL ERROR HANDLER
 |--------------------------------------------------------------------------
 */
@@ -308,11 +363,6 @@ export const adminAPI = {
 api.interceptors.response.use(
     (response) => response.data,
     (error) => {
-        console.error(
-            "API Error:",
-            error.response?.data || error.message
-        );
-
         return Promise.reject(
             error.response?.data || { message: error.message }
         );

@@ -252,13 +252,17 @@
 //     );
 // }
 
-import React, { useState, useEffect, useMemo, useContext } from 'react';
+import React, { useState, useEffect, useMemo, useContext, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { courseAPI } from '../services/apiService';
 import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
+import Loader from '../components/ui/Loader';
 import { AppContext } from '../context/AppContext';
 import { hideBrokenImage, resolveCoverImageUrl } from '../utils/media';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const hasPublicCourseDetails = (course) =>
     Boolean(
@@ -272,6 +276,7 @@ const hasPublicCourseDetails = (course) =>
     );
 
 export default function Explore() {
+    const exploreRef = useRef(null);
     const { theme, appUser } = useContext(AppContext);
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -301,8 +306,7 @@ export default function Explore() {
                 } else {
                     setError("Failed to fetch courses");
                 }
-            } catch (err) {
-                console.error(err);
+            } catch {
                 setError("Server error");
             } finally {
                 setLoading(false);
@@ -340,8 +344,56 @@ export default function Explore() {
         return result;
     }, [courses, filters, sortBy]);
 
+    useLayoutEffect(() => {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+        const ctx = gsap.context(() => {
+            gsap.from(".explore-heading", {
+                opacity: 0,
+                y: 18,
+                duration: 0.55,
+                ease: "power2.out",
+            });
+
+            gsap.from(".explore-controls", {
+                opacity: 0,
+                y: 16,
+                duration: 0.45,
+                ease: "power2.out",
+            });
+
+            if (filteredCourses.length > 0) {
+                const cards = gsap.utils.toArray(".explore-card");
+                cards.forEach((card, index) => {
+                    gsap.from(card, {
+                        opacity: 0,
+                        y: 20,
+                        scale: 0.98,
+                        duration: 0.48,
+                        delay: Math.min(index * 0.02, 0.2),
+                        ease: "power2.out",
+                        scrollTrigger: {
+                            trigger: card,
+                            start: "top 92%",
+                            once: true,
+                        },
+                    });
+                });
+            }
+        }, exploreRef);
+
+        return () => ctx.revert();
+    }, [filteredCourses.length]);
+
     if (loading) {
-        return <div className="p-10 text-center">Loading courses...</div>;
+        return (
+            <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4">
+                <Loader />
+                <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Loading courses...
+                </p>
+            </div>
+        );
     }
 
     if (error) {
@@ -349,10 +401,19 @@ export default function Explore() {
     }
 
     return (
-        <div className={`min-h-screen py-10 ${theme === 'dark' ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
+        <div
+            ref={exploreRef}
+            className={`min-h-screen py-10 ${theme === 'dark' ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900'}`}
+        >
             <div className="container mx-auto px-4">
+                <div className="explore-heading mb-6">
+                    <h1 className="text-3xl md:text-4xl font-bold">Explore Courses</h1>
+                    <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mt-2`}>
+                        Discover premium exam prep material with fresh weekly additions.
+                    </p>
+                </div>
 
-                <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                <div className="explore-controls flex justify-between items-center mb-6 flex-wrap gap-4">
                         <input
                         type="text"
                         placeholder="Search courses..."
@@ -382,12 +443,13 @@ export default function Explore() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {filteredCourses.map(course => (
                             <Link to={`/pdf/${course._id}`} key={course._id}>
-                                <Card hoverable>
+                                <Card hoverable className="explore-card">
 
                                     {resolveCoverImageUrl(course.coverUrl) && (
                                         <img
                                             src={resolveCoverImageUrl(course.coverUrl)}
                                             alt={course.title}
+                                            loading="lazy"
                                             className="w-full h-48 object-cover rounded mb-4"
                                             onError={hideBrokenImage}
                                         />

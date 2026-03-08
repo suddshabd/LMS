@@ -1,5 +1,6 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useLayoutEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import gsap from "gsap";
 import {
     UserButton,
     useAuth,
@@ -10,9 +11,34 @@ import Button from "../ui/Button";
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const navRef = useRef(null);
     const { theme, setTheme, appUser } = useContext(AppContext);
     const { isLoaded, isSignedIn } = useAuth();
     const clerk = useClerk();
+
+    useLayoutEffect(() => {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+        const ctx = gsap.context(() => {
+            gsap.from(".nav-logo", {
+                opacity: 0,
+                y: -14,
+                duration: 0.45,
+                ease: "power2.out",
+            });
+
+            gsap.from(".nav-item", {
+                opacity: 0,
+                y: -10,
+                stagger: 0.06,
+                duration: 0.4,
+                ease: "power2.out",
+                delay: 0.08,
+            });
+        }, navRef);
+
+        return () => ctx.revert();
+    }, []);
 
     const toggleTheme = () => {
         setTheme(theme === "light" ? "dark" : "light");
@@ -25,15 +51,13 @@ export default function Navbar() {
     const handleSignInClick = async () => {
         try {
             if (!isLoaded) {
-                console.error("Clerk is not loaded yet. Check VITE_CLERK_PUBLISHABLE_KEY and allowed domains.");
                 return;
             }
 
             await clerk.redirectToSignIn({
                 returnBackUrl: window.location.href,
             });
-        } catch (error) {
-            console.error("Sign-in redirect failed:", error);
+        } catch {
             clerk.redirectToSignIn({
                 returnBackUrl: window.location.href,
             });
@@ -42,6 +66,7 @@ export default function Navbar() {
 
     return (
         <nav
+            ref={navRef}
             className={`${theme === "dark"
                     ? "bg-gray-900 border-b border-gray-800"
                     : "bg-gradient-to-r from-blue-600 to-blue-800"
@@ -51,7 +76,7 @@ export default function Navbar() {
                 <div className="flex justify-between items-center py-4">
 
                     {/* Logo */}
-                    <Link to="/" className="flex items-center gap-2">
+                    <Link to="/" className="flex items-center gap-2 nav-logo">
                         <img src="/logo.png" alt="PIB BITS" className="h-12 object-contain" />
                     </Link>
 
@@ -60,18 +85,18 @@ export default function Navbar() {
                         className={`hidden md:flex items-center gap-8 ${theme === "dark" ? "text-gray-300" : "text-white"
                             }`}
                     >
-                        <Link to="/" className="hover:opacity-80 transition">
+                        <Link to="/" className="hover:opacity-80 transition nav-item">
                             Home
                         </Link>
 
-                        <Link to="/explore" className="hover:opacity-80 transition">
+                        <Link to="/explore" className="hover:opacity-80 transition nav-item">
                             Explore
                         </Link>
 
                         {/* Theme Toggle */}
                         <button
                             onClick={toggleTheme}
-                            className={`px-3 py-2 rounded-lg transition ${theme === "dark"
+                            className={`px-3 py-2 rounded-lg transition nav-item ${theme === "dark"
                                     ? "bg-yellow-500 text-gray-900 hover:bg-yellow-400"
                                     : "bg-gray-700 text-yellow-300 hover:bg-gray-600"
                                 }`}
@@ -84,6 +109,7 @@ export default function Navbar() {
                                 variant="secondary"
                                 size="sm"
                                 onClick={handleSignInClick}
+                                className="nav-item"
                             >
                                 Sign In
                             </Button>
@@ -91,7 +117,7 @@ export default function Navbar() {
 
                         {!shouldShowSignIn && (
                             <>
-                            <Link to="/dashboard" className="hover:opacity-80 transition">
+                            <Link to="/dashboard" className="hover:opacity-80 transition nav-item">
                                 Dashboard
                             </Link>
 
@@ -99,7 +125,7 @@ export default function Navbar() {
                             {isAdmin && (
                                 <Link
                                     to="/admin"
-                                    className="text-yellow-400 font-semibold hover:opacity-80 transition"
+                                    className="text-yellow-400 font-semibold hover:opacity-80 transition nav-item"
                                 >
                                     Admin
                                 </Link>
@@ -109,20 +135,22 @@ export default function Navbar() {
                             {isInstructor && (
                                 <Link
                                     to="/creator"
-                                    className="text-green-400 font-semibold hover:opacity-80 transition"
+                                    className="text-green-400 font-semibold hover:opacity-80 transition nav-item"
                                 >
                                     Creator
                                 </Link>
                             )}
 
-                            <UserButton
-                                afterSignOutUrl="/"
-                                appearance={{
-                                    elements: {
-                                        userButtonAvatarBox: "w-10 h-10",
-                                    },
-                                }}
-                            />
+                            <div className="nav-item">
+                                <UserButton
+                                    afterSignOutUrl="/"
+                                    appearance={{
+                                        elements: {
+                                            userButtonAvatarBox: "w-10 h-10",
+                                        },
+                                    }}
+                                />
+                            </div>
                             </>
                         )}
                     </div>
