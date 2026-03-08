@@ -6,6 +6,7 @@ import Button from '../ui/Button';
 import Card from '../ui/Card';
 import { AppContext } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
+import { getCoursePricing } from '../../utils/pricing';
 
 const getFileSizeInMB = (sizeInBytes) => {
     return (sizeInBytes / (1024 * 1024)).toFixed(2);
@@ -57,6 +58,10 @@ export default function UploadForm() {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
+    const livePricing = getCoursePricing({
+        price: formData.price,
+        discount: formData.discount,
+    });
     useEffect(() => {
         return () => {
             if (pdfPreview) URL.revokeObjectURL(pdfPreview);
@@ -604,9 +609,16 @@ export default function UploadForm() {
                                 {formData.description || 'Add a strong description so students quickly understand value and outcomes.'}
                             </p>
                             <div className="flex items-center justify-between">
-                                <span className={`text-2xl font-bold ${theme === 'dark' ? 'text-cyan-300' : 'text-cyan-700'}`}>
-                                    {formData.price ? `₹${formData.price}` : '₹0'}
-                                </span>
+                                <div className="flex items-end gap-2">
+                                    <span className={`text-2xl font-bold ${theme === 'dark' ? 'text-cyan-300' : 'text-cyan-700'}`}>
+                                        ₹{livePricing.finalPrice}
+                                    </span>
+                                    {livePricing.hasDiscount && (
+                                        <span className={`text-sm line-through ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'}`}>
+                                            ₹{livePricing.originalPrice}
+                                        </span>
+                                    )}
+                                </div>
                                 <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'}`}>
                                     {formData.pages ? `${formData.pages} pages` : 'Pages not set'}
                                 </span>

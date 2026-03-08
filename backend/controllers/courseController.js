@@ -238,6 +238,14 @@ export const createCourse = async (req, res) => {
             });
         }
 
+        const parsedPrice = Number(price);
+        if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid price value",
+            });
+        }
+
         const parsedDiscount = Number(discount ?? 0);
         const safeDiscount = Number.isFinite(parsedDiscount)
             ? Math.min(100, Math.max(0, parsedDiscount))
@@ -281,7 +289,7 @@ export const createCourse = async (req, res) => {
         const course = await Course.create({
             title,
             category,
-            price,
+            price: parsedPrice,
             discount: safeDiscount,
             pdfUrl: pdfUpload.secure_url,
             coverUrl,
@@ -322,7 +330,27 @@ export const updateCourse = async (req, res) => {
             });
         }
 
-        Object.assign(course, req.body);
+        const updates = { ...req.body };
+
+        if (updates.price !== undefined) {
+            const parsedPrice = Number(updates.price);
+            if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid price value",
+                });
+            }
+            updates.price = parsedPrice;
+        }
+
+        if (updates.discount !== undefined) {
+            const parsedDiscount = Number(updates.discount);
+            updates.discount = Number.isFinite(parsedDiscount)
+                ? Math.min(100, Math.max(0, parsedDiscount))
+                : 0;
+        }
+
+        Object.assign(course, updates);
         await course.save();
 
         res.status(200).json({
