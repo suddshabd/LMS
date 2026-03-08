@@ -4,6 +4,7 @@ import Course from "../models/Course.js";
 import User from "../models/User.js";
 import * as courseService from "../services/courseService.js";
 import { uploadToCloudinary } from "../config/cloudinary.js";
+import { logger } from "../config/logger.js";
 
 const normalizeCloudinaryPdfUrl = (url) => {
     if (!url || typeof url !== "string") return url;
@@ -228,7 +229,7 @@ export const createCourse = async (req, res) => {
             });
         }
 
-        const { title, category, price, ...rest } = req.body;
+        const { title, category, price, discount, ...rest } = req.body;
 
         if (!title || !category || !price) {
             return res.status(400).json({
@@ -236,6 +237,11 @@ export const createCourse = async (req, res) => {
                 message: "Missing required fields",
             });
         }
+
+        const parsedDiscount = Number(discount ?? 0);
+        const safeDiscount = Number.isFinite(parsedDiscount)
+            ? Math.min(100, Math.max(0, parsedDiscount))
+            : 0;
 
         /* ===============================
            🔥 Upload PDF
@@ -276,6 +282,7 @@ export const createCourse = async (req, res) => {
             title,
             category,
             price,
+            discount: safeDiscount,
             pdfUrl: pdfUpload.secure_url,
             coverUrl,
             instructor: instructorUser._id,  // ✅ FIXED
@@ -292,7 +299,7 @@ export const createCourse = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Create course error:", error);
+        logger.error({ err: error }, "Create course error");
 
         res.status(500).json({
             success: false,

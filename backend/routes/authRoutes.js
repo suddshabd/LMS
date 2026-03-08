@@ -25,11 +25,14 @@
 import express from "express";
 import { syncUser, getCurrentUser, makeAdmin } from "../controllers/authController.js";
 import { requireAuth } from "@clerk/express";
+import { validateBody } from "../middleware/validate.js";
+import { authLimiter } from "../middleware/rateLimiters.js";
+import { makeAdminSchema, syncUserSchema } from "../validation/schemas.js";
 
 const router = express.Router();
 
-router.post("/sync", requireAuth(), syncUser);
+router.post("/sync", authLimiter, requireAuth(), validateBody(syncUserSchema), syncUser);
 router.get("/me", requireAuth(), getCurrentUser);
-router.patch("/make-admin", requireAuth(), makeAdmin);
+router.patch("/make-admin", authLimiter, requireAuth(), validateBody(makeAdminSchema), makeAdmin);
 
 export default router;

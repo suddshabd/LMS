@@ -4,6 +4,8 @@ import Course from '../models/Course.js';
 export const getAllCourses = async (filters = {}) => {
     try {
         let query = { isActive: true };
+        let projection = null;
+        let sortOptions = null;
 
         if (filters.category) {
             query.category = filters.category;
@@ -13,11 +15,19 @@ export const getAllCourses = async (filters = {}) => {
             query.instructor = filters.instructor;
         }
 
-        if (filters.search) {
-            query.title = { $regex: filters.search, $options: 'i' };
+        if (filters.search && String(filters.search).trim()) {
+            query.$text = { $search: String(filters.search).trim() };
+            projection = { score: { $meta: "textScore" } };
+            sortOptions = { score: { $meta: "textScore" } };
         }
 
-        const courses = await Course.find(query);
+        let coursesQuery = Course.find(query, projection);
+
+        if (sortOptions) {
+            coursesQuery = coursesQuery.sort(sortOptions);
+        }
+
+        const courses = await coursesQuery;
 
         if (filters.sort) {
             const sortField = filters.sort === 'price' ? 'price' : filters.sort;

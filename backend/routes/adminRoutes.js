@@ -21,10 +21,11 @@ import User from "../models/User.js";
 import Course from "../models/Course.js";
 import Payment from "../models/Payment.js";
 import { requireAuth } from "@clerk/express";
+import { requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.get("/dashboard", requireAuth(), async (req, res) => {
+router.get("/dashboard", requireAuth(), requireAdmin, async (req, res) => {
     try {
         const users = await User.countDocuments();
         const courses = await Course.countDocuments();
@@ -43,6 +44,45 @@ router.get("/dashboard", requireAuth(), async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+router.get("/analytics/instructor", requireAuth(), requireAdmin, async (req, res) => {
+    try {
+        const paidPayments = await Payment.find({ status: "captured" }).populate("course user");
+        const totalPurchases = paidPayments.length;
+
+        const byCategoryMap = {};
+        const buyersCount = {};
+        for (const payment of paidPayments) {
+            const category = payment.course?.category || "Unknown";
+            byCategoryMap[category] = (byCategoryMap[category] || 0) + 1;
+
+            const buyer = String(payment.user?._id || "");
+            if (buyer) buyersCount[buyer] = (buyersCount[buyer] || 0) + 1;
+        }
+
+        const topCategories = Object.entries(byCategoryMap)
+            .map(([category, count]) => ({ category, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+
+        const repeatBuyers = Object.values(buyersCount).filter((count) => count > 1).length;
+        const conversionRate = totalPurchases > 0
+            ? Number(((repeatBuyers / totalPurchases) * 100).toFixed(2))
+            : 0;
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                totalPurchases,
+                repeatBuyers,
+                conversionRate,
+                topCategories,
+            },
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
     }
 });
 

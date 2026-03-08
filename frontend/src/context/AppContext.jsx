@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // import React, { createContext, useState, useCallback, useEffect } from "react";
 // import { useUser } from "@clerk/clerk-react";
 // import { authAPI } from "../services/apiService";
@@ -146,8 +147,7 @@ export function AppProvider({ children }) {
                     setAppUser(null);
                     setIsAuthenticated(false);
                 }
-            } catch (error) {
-                console.error("Auth error:", error);
+            } catch {
                 setAppUser(null);
                 setIsAuthenticated(false);
             } finally {
@@ -156,7 +156,7 @@ export function AppProvider({ children }) {
         };
 
         syncUser();
-    }, [isSignedIn, user]);
+    }, [getToken, isSignedIn, user]);
 
     const setTheme = useCallback((newTheme) => {
         setThemeState(newTheme);

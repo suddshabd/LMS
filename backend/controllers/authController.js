@@ -141,6 +141,7 @@
 
 
 import User from "../models/User.js";
+import { logger } from "../config/logger.js";
 
 /* ======================================================
    🔄 POST /api/auth/sync
@@ -201,7 +202,7 @@ export const syncUser = async (req, res) => {
             user,
         });
     } catch (error) {
-        console.error("🔥 Sync user error:", error);
+        logger.error({ err: error }, "Sync user error");
 
         return res.status(500).json({
             success: false,
@@ -242,7 +243,7 @@ export const getCurrentUser = async (req, res) => {
             user,
         });
     } catch (error) {
-        console.error("🔥 Get current user error:", error);
+        logger.error({ err: error }, "Get current user error");
 
         return res.status(500).json({
             success: false,
@@ -295,7 +296,7 @@ export const makeAdmin = async (req, res) => {
             user,
         });
     } catch (error) {
-        console.error("🔥 Make admin error:", error);
+        logger.error({ err: error }, "Make admin error");
 
         return res.status(500).json({
             success: false,

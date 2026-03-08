@@ -99,6 +99,7 @@
 
 // export default userController;
 import userService from '../services/userService.js';
+import { logger } from '../config/logger.js';
 
 const userController = {
 
@@ -124,7 +125,7 @@ const userController = {
             return res.status(result.success ? 200 : 500).json(result);
 
         } catch (error) {
-            console.error("Sync error:", error);
+            logger.error({ err: error }, "Sync error");
             return res.status(500).json({
                 success: false,
                 error: "Internal server error"
@@ -152,7 +153,7 @@ const userController = {
             return res.status(result.success ? 200 : 404).json(result);
 
         } catch (error) {
-            console.error("Get profile error:", error);
+            logger.error({ err: error }, "Get profile error");
             return res.status(500).json({
                 success: false,
                 error: "Internal server error"
@@ -185,7 +186,7 @@ const userController = {
             return res.status(result.success ? 200 : 400).json(result);
 
         } catch (error) {
-            console.error("Update profile error:", error);
+            logger.error({ err: error }, "Update profile error");
             return res.status(500).json({
                 success: false,
                 error: "Internal server error"

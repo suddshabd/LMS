@@ -321,13 +321,15 @@
 
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { SignedIn, SignedOut, useUser } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, useAuth, useClerk, useUser } from '@clerk/clerk-react';
 import { courseAPI } from '../services/apiService';
 import { paymentAPI } from '../services/apiService';
+import { progressAPI } from '../services/apiService';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
+import Loader from '../components/ui/Loader';
 import { AppContext } from '../context/AppContext';
 import CashfreePayment from '../components/payment/CashfreePayment';
 import { hideBrokenImage, resolveCoverImageUrl, resolvePdfUrl } from '../utils/media';
@@ -336,6 +338,8 @@ export default function PdfDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useUser();
+    const { isLoaded } = useAuth();
+    const clerk = useClerk();
     const { theme } = useContext(AppContext);
 
     const [course, setCourse] = useState(null);
@@ -354,8 +358,8 @@ export default function PdfDetails() {
                 if (res.success) {
                     setCourse(res.data);
                 }
-            } catch (err) {
-                console.error("Course fetch error:", err);
+            } catch {
+                setCourse(null);
             } finally {
                 setLoading(false);
             }
@@ -376,16 +380,28 @@ export default function PdfDetails() {
                         String(payment.course?._id || payment.course) === String(id)
                 );
                 setIsPurchased(hasPurchased);
-            } catch (err) {
-                console.error("Payment status check error:", err);
+            } catch {
+                setIsPurchased(false);
             }
         };
 
         checkPurchaseStatus();
     }, [user, id]);
 
+    useEffect(() => {
+        if (!isPurchased || !id) return;
+        progressAPI.updateProgress(id, { lastOpenedPage: 1, percentComplete: 0 }).catch(() => {});
+    }, [id, isPurchased]);
+
     if (loading) {
-        return <div className="p-10 text-center">Loading course...</div>;
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+                <Loader />
+                <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Loading course...
+                </p>
+            </div>
+        );
     }
 
     if (!course) {
@@ -399,9 +415,16 @@ export default function PdfDetails() {
         );
     }
 
-    const handlePurchase = () => {
+    const handlePurchase = async () => {
         if (!user) {
-            navigate('/');
+            if (!isLoaded) return;
+            try {
+                await clerk.redirectToSignIn({
+                    returnBackUrl: window.location.href,
+                });
+            } catch {
+                setShowPaymentModal(false);
+            }
             return;
         }
         setShowPaymentModal(true);
@@ -432,6 +455,7 @@ export default function PdfDetails() {
                         <img
                             src={resolveCoverImageUrl(course.coverUrl)}
                             alt={course.title}
+                            loading="lazy"
                             className="w-full h-72 object-cover rounded mb-6"
                             onError={hideBrokenImage}
                         />
@@ -512,7 +536,7 @@ export default function PdfDetails() {
                                 <SignedOut>
                                     <Button
                                         className="w-full mb-3"
-                                        onClick={() => navigate('/')}
+                                        onClick={handlePurchase}
                                     >
                                         Sign In to Buy
                                     </Button>

@@ -65,10 +65,10 @@ export default function Footer() {
                     <div>
                         <h4 className="text-white font-bold mb-4">Resources</h4>
                         <ul className="space-y-2 text-sm">
-                            <li><a href="#" className="hover:text-white transition">Blog</a></li>
-                            <li><a href="#" className="hover:text-white transition">Study Tips</a></li>
-                            <li><a href="#" className="hover:text-white transition">Success Stories</a></li>
-                            <li><a href="#" className="hover:text-white transition">FAQ</a></li>
+                            <li><Link to="/resources#blog" className="hover:text-white transition">Blog</Link></li>
+                            <li><Link to="/resources#tips" className="hover:text-white transition">Study Tips</Link></li>
+                            <li><Link to="/resources#stories" className="hover:text-white transition">Success Stories</Link></li>
+                            <li><Link to="/resources#faq" className="hover:text-white transition">FAQ</Link></li>
                         </ul>
                     </div>
 
