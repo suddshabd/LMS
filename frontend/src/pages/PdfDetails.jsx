@@ -320,7 +320,7 @@
 // }
 
 import React, { useContext, useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { SignedIn, SignedOut, useAuth, useClerk, useUser } from '@clerk/clerk-react';
 import { courseAPI } from '../services/apiService';
 import { paymentAPI } from '../services/apiService';
@@ -338,6 +338,7 @@ import { getCoursePricing } from '../utils/pricing';
 export default function PdfDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useUser();
     const { isLoaded } = useAuth();
     const clerk = useClerk();
@@ -347,7 +348,10 @@ export default function PdfDetails() {
     const [loading, setLoading] = useState(true);
     const [isPurchased, setIsPurchased] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [returnPaymentError, setReturnPaymentError] = useState('');
+    const [verifyingReturnPayment, setVerifyingReturnPayment] = useState(false);
     const pricing = getCoursePricing(course);
+    const orderIdFromReturn = searchParams.get('order_id');
 
     /* ==========================
        FETCH COURSE FROM BACKEND
@@ -389,6 +393,67 @@ export default function PdfDetails() {
 
         checkPurchaseStatus();
     }, [user, id]);
+
+    useEffect(() => {
+        if (!orderIdFromReturn || !id || !isLoaded || !user) return;
+
+        let cancelled = false;
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        const verifyReturnedPayment = async () => {
+            setVerifyingReturnPayment(true);
+            setReturnPaymentError('');
+
+            const maxAttempts = 5;
+            for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+                if (cancelled) return;
+                try {
+                    const verifyResponse = await paymentAPI.verifyPayment({ orderId: orderIdFromReturn });
+                    if (verifyResponse?.success) {
+                        setIsPurchased(true);
+                        setShowPaymentModal(false);
+                        setSearchParams((prev) => {
+                            const next = new URLSearchParams(prev);
+                            next.delete('order_id');
+                            return next;
+                        }, { replace: true });
+                        return;
+                    }
+
+                    const message =
+                        verifyResponse?.message ||
+                        verifyResponse?.error ||
+                        'Payment verification failed';
+                    const isPending = /not completed|current status|active|pending/i.test(message);
+
+                    if (isPending && attempt < maxAttempts) {
+                        await wait(1500);
+                        continue;
+                    }
+
+                    setReturnPaymentError(message);
+                    return;
+                } catch {
+                    if (attempt < maxAttempts) {
+                        await wait(1500);
+                        continue;
+                    }
+                    setReturnPaymentError('Payment was received but verification timed out. Please refresh once.');
+                    return;
+                }
+            }
+        };
+
+        verifyReturnedPayment().finally(() => {
+            if (!cancelled) {
+                setVerifyingReturnPayment(false);
+            }
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [id, isLoaded, orderIdFromReturn, setSearchParams, user]);
 
     useEffect(() => {
         if (!isPurchased || !id) return;
@@ -532,6 +597,16 @@ export default function PdfDetails() {
 
                         {!isPurchased ? (
                             <>
+                                {verifyingReturnPayment && (
+                                    <div className="mb-3 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                                        Verifying your payment...
+                                    </div>
+                                )}
+                                {returnPaymentError && (
+                                    <div className="mb-3 rounded-lg bg-red-100 p-3 text-sm text-red-700">
+                                        {returnPaymentError}
+                                    </div>
+                                )}
                                 <SignedIn>
                                     <Button
                                         className="w-full mb-3"

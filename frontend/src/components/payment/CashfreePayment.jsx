@@ -34,6 +34,33 @@ export default function CashfreePayment({ course, onSuccess }) {
         });
     };
 
+    const verifyOrderWithRetry = async (orderId) => {
+        const maxAttempts = 5;
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+            const verifyResponse = await paymentAPI.verifyPayment({ orderId });
+            if (verifyResponse?.success) {
+                return verifyResponse;
+            }
+
+            const message =
+                verifyResponse?.message ||
+                verifyResponse?.error ||
+                'Payment verification failed';
+            const isPending = /not completed|current status|active|pending/i.test(message);
+
+            if (isPending && attempt < maxAttempts) {
+                await wait(1500);
+                continue;
+            }
+
+            throw new Error(message);
+        }
+
+        throw new Error('Payment verification timed out. Please reopen the course page.');
+    };
+
     const handlePayment = async () => {
         try {
             setLoading(true);
@@ -70,10 +97,7 @@ export default function CashfreePayment({ course, onSuccess }) {
                 throw new Error(checkoutResult.error.message || 'Cashfree checkout failed');
             }
 
-            const verifyResponse = await paymentAPI.verifyPayment({ orderId });
-            if (!verifyResponse.success) {
-                throw new Error(verifyResponse.message || 'Payment verification failed');
-            }
+            const verifyResponse = await verifyOrderWithRetry(orderId);
 
             onSuccess(verifyResponse);
         } catch (err) {
