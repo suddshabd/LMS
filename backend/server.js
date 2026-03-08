@@ -245,12 +245,22 @@ app.get("/api/ready", (req, res) => {
 
 if (process.env.NODE_ENV === "production") {
     const frontendDistPath = path.resolve(__dirname, "../frontend/dist");
+
+    // Cache hashed static assets aggressively, but always revalidate HTML shell.
+    app.use(
+        "/assets",
+        express.static(path.join(frontendDistPath, "assets"), {
+            maxAge: "1y",
+            immutable: true,
+        })
+    );
+
     app.use(
         express.static(frontendDistPath, {
-            maxAge: "1h",
+            maxAge: 0,
             setHeaders: (res, filePath) => {
-                if (filePath.includes(`${path.sep}assets${path.sep}`)) {
-                    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+                if (filePath.endsWith(".html")) {
+                    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
                 }
             },
         })

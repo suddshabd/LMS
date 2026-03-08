@@ -1,4 +1,14 @@
 const toNumber = (value) => {
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : 0;
+    }
+
+    if (typeof value === "string") {
+        const cleaned = value.trim().replace(/[^0-9.-]/g, "");
+        const parsed = Number(cleaned);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
 };
