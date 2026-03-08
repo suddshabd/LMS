@@ -261,6 +261,7 @@ import Card from '../components/ui/Card';
 import Loader from '../components/ui/Loader';
 import { AppContext } from '../context/AppContext';
 import { hideBrokenImage, resolveCoverImageUrl } from '../utils/media';
+import { getCoursePricing } from '../utils/pricing';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -332,9 +333,9 @@ export default function Explore() {
         });
 
         if (sortBy === 'price-low') {
-            result.sort((a, b) => a.price - b.price);
+            result.sort((a, b) => getCoursePricing(a).finalPrice - getCoursePricing(b).finalPrice);
         } else if (sortBy === 'price-high') {
-            result.sort((a, b) => b.price - a.price);
+            result.sort((a, b) => getCoursePricing(b).finalPrice - getCoursePricing(a).finalPrice);
         } else if (sortBy === 'newest') {
             result.sort((a, b) =>
                 new Date(b.createdAt) - new Date(a.createdAt)
@@ -441,7 +442,9 @@ export default function Explore() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {filteredCourses.map(course => (
+                        {filteredCourses.map(course => {
+                            const pricing = getCoursePricing(course);
+                            return (
                             <Link to={`/pdf/${course._id}`} key={course._id}>
                                 <Card hoverable className="explore-card">
 
@@ -464,16 +467,29 @@ export default function Explore() {
                                     </p>
 
                                     <div className="flex justify-between items-center">
-                                        <span className="font-bold text-blue-600 text-xl">
-                                            ₹{course.price}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-blue-600 text-xl">
+                                                ₹{pricing.finalPrice}
+                                            </span>
+                                            {pricing.hasDiscount && (
+                                                <>
+                                                    <span className={`text-sm line-through ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                        ₹{pricing.originalPrice}
+                                                    </span>
+                                                    <span className="text-xs text-green-500 font-semibold">
+                                                        {pricing.discount}% OFF
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
                                         <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                                             {(course.students || 0).toLocaleString()} students
                                         </span>
                                     </div>
                                 </Card>
                             </Link>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

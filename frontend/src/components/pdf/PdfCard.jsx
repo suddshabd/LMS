@@ -4,11 +4,13 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { AppContext } from '../../context/AppContext';
 import { hideBrokenImage, resolveCoverImageUrl } from '../../utils/media';
+import { getCoursePricing } from '../../utils/pricing';
 
 export default function PdfCard({ pdf, course }) {
     const { theme } = useContext(AppContext);
     const data = pdf || course;
     const coverSrc = resolveCoverImageUrl(data?.coverUrl || data?.cover);
+    const pricing = getCoursePricing(data);
 
     return (
         <Link to={`/pdf/${data?._id || data?.id || 1}`}>
@@ -44,7 +46,15 @@ export default function PdfCard({ pdf, course }) {
                 )}
 
                 <div className="flex justify-between items-center mb-3">
-                    <span className={`font-bold text-xl ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>₹{data?.price || '0'}</span>
+                    <div className="flex items-center gap-2">
+                        <span className={`font-bold text-xl ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>₹{pricing.finalPrice}</span>
+                        {pricing.hasDiscount && (
+                            <>
+                                <span className={`text-sm line-through ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>₹{pricing.originalPrice}</span>
+                                <span className="text-xs text-green-500 font-semibold">{pricing.discount}% OFF</span>
+                            </>
+                        )}
+                    </div>
                     {data?.students && <span className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>{(data.students / 1000).toFixed(1)}K students</span>}
                 </div>
 

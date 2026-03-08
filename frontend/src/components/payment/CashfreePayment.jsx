@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { paymentAPI } from '../../services/apiService';
+import { getCoursePricing } from '../../utils/pricing';
 
 export default function CashfreePayment({ course, onSuccess }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [couponCode, setCouponCode] = useState('');
-    const [payableAmount, setPayableAmount] = useState(Number(course?.price) || 0);
+    const [payableAmount, setPayableAmount] = useState(getCoursePricing(course).finalPrice);
 
     const loadCashfreeScript = () => {
         return new Promise((resolve) => {
@@ -52,7 +53,7 @@ export default function CashfreePayment({ course, onSuccess }) {
             }
 
             const { orderId, paymentSessionId } = orderResponse.data;
-            setPayableAmount(Number(orderResponse.data?.amount) || Number(course?.price) || 0);
+            setPayableAmount(Number(orderResponse.data?.amount) || getCoursePricing(course).finalPrice);
 
             if (!paymentSessionId) {
                 throw new Error('Cashfree payment session not received from backend');

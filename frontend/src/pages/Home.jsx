@@ -216,6 +216,7 @@ import Badge from '../components/ui/Badge';
 import Loader from '../components/ui/Loader';
 import { AppContext } from '../context/AppContext';
 import { hideBrokenImage, resolveCoverImageUrl } from '../utils/media';
+import { getCoursePricing } from '../utils/pricing';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -376,7 +377,9 @@ export default function Home() {
                         </p>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {featuredCourses.map(course => (
+                            {featuredCourses.map(course => {
+                                const pricing = getCoursePricing(course);
+                                return (
                                 <Link to={`/pdf/${course._id}`} key={course._id}>
                                     <Card hoverable className="h-full featured-card">
 
@@ -403,16 +406,29 @@ export default function Home() {
                                         </p>
 
                                         <div className="flex justify-between items-center">
-                                            <span className="font-bold text-blue-600 text-xl">
-                                                ₹{course.price}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-blue-600 text-xl">
+                                                    ₹{pricing.finalPrice}
+                                                </span>
+                                                {pricing.hasDiscount && (
+                                                    <>
+                                                        <span className={`text-sm line-through ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
+                                                            ₹{pricing.originalPrice}
+                                                        </span>
+                                                        <span className="text-xs text-green-500 font-semibold">
+                                                            {pricing.discount}% OFF
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
                                             <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                                                 {(course.students || 0).toLocaleString()} students
                                             </span>
                                         </div>
                                     </Card>
                                 </Link>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
 

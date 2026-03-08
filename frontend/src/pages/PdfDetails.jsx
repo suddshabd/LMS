@@ -333,6 +333,7 @@ import Loader from '../components/ui/Loader';
 import { AppContext } from '../context/AppContext';
 import CashfreePayment from '../components/payment/CashfreePayment';
 import { hideBrokenImage, resolveCoverImageUrl, resolvePdfUrl } from '../utils/media';
+import { getCoursePricing } from '../utils/pricing';
 
 export default function PdfDetails() {
     const { id } = useParams();
@@ -346,6 +347,7 @@ export default function PdfDetails() {
     const [loading, setLoading] = useState(true);
     const [isPurchased, setIsPurchased] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const pricing = getCoursePricing(course);
 
     /* ==========================
        FETCH COURSE FROM BACKEND
@@ -519,8 +521,14 @@ export default function PdfDetails() {
                         </p>
 
                         <p className="text-4xl font-bold text-blue-600 mb-4">
-                            ₹{course.price}
+                            ₹{pricing.finalPrice}
                         </p>
+                        {pricing.hasDiscount && (
+                            <p className={theme === 'dark' ? 'text-gray-400 mb-4' : 'text-gray-600 mb-4'}>
+                                <span className="line-through mr-2">₹{pricing.originalPrice}</span>
+                                <span className="text-green-500 font-semibold">{pricing.discount}% OFF</span>
+                            </p>
+                        )}
 
                         {!isPurchased ? (
                             <>
@@ -560,7 +568,7 @@ export default function PdfDetails() {
                 <div className="space-y-4">
                     <div className="flex justify-between">
                         <span>{course.title}</span>
-                        <span className="font-bold">₹{course.price}</span>
+                        <span className="font-bold">₹{pricing.finalPrice}</span>
                     </div>
 
                     {course && (
