@@ -5,6 +5,7 @@ import User from "../models/User.js";
 import * as courseService from "../services/courseService.js";
 import { uploadToCloudinary } from "../config/cloudinary.js";
 import { logger } from "../config/logger.js";
+import { generateDescription } from "../services/aiService.js";
 
 const normalizeCloudinaryPdfUrl = (url) => {
     if (!url || typeof url !== "string") return url;
@@ -110,6 +111,27 @@ export const getCourseById = async (req, res) => {
             success: false,
             message: error.message,
         });
+    }
+};
+
+/* ======================================================
+   🧠 GENERATE DESCRIPTION (Optional AI endpoint)
+====================================================== */
+
+export const generateDescriptionEndpoint = async (req, res) => {
+    try {
+        const { title } = req.body;
+
+        if (!title || typeof title !== "string" || title.trim().length === 0) {
+            return res.status(400).json({ success: false, message: "Title is required" });
+        }
+
+        const description = await generateDescription(title.trim());
+
+        return res.status(200).json({ success: true, description });
+    } catch (error) {
+        logger.error({ err: error }, "Generate description error");
+        return res.status(500).json({ success: false, message: "Failed to generate description" });
     }
 };
 
@@ -286,6 +308,22 @@ export const createCourse = async (req, res) => {
            🔥 Create Course
         =============================== */
 
+        // If no description provided, generate one from the title using AI service
+        const providedDescription =
+            typeof rest.description === "string" && rest.description.trim().length > 0
+                ? rest.description.trim()
+                : null;
+
+        let finalDescription = providedDescription;
+        if (!finalDescription) {
+            try {
+                finalDescription = await generateDescription(title);
+            } catch (err) {
+                logger.warn({ err }, "AI description generation failed, continuing without it");
+                finalDescription = null;
+            }
+        }
+
         const course = await Course.create({
             title,
             category,
@@ -293,7 +331,8 @@ export const createCourse = async (req, res) => {
             discount: safeDiscount,
             pdfUrl: pdfUpload.secure_url,
             coverUrl,
-            instructor: instructorUser._id,  // ✅ FIXED
+            instructor: instructorUser._id,
+            description: finalDescription,
             ...rest,
         });
 

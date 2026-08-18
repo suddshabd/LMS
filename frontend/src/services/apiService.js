@@ -222,6 +222,8 @@ export const courseAPI = {
             },
         }),
 
+    generateDescription: (title) => api.post('/courses/generate-description', { title }),
+
     updateCourse: (id, data, token) =>
         api.put(`/courses/${id}`, data, {
             headers: { Authorization: `Bearer ${token}` },

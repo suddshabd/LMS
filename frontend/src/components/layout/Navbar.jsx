@@ -1,44 +1,14 @@
-import React, { useState, useContext, useLayoutEffect, useRef } from "react";
+import React, { useState, useContext } from "react";
 import { Link } from "react-router-dom";
-import gsap from "gsap";
-import {
-    UserButton,
-    useAuth,
-    useClerk,
-} from "@clerk/clerk-react";
+import { UserButton, useAuth, useClerk } from "@clerk/clerk-react";
 import { AppContext } from "../../context/AppContext";
 import Button from "../ui/Button";
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const navRef = useRef(null);
     const { theme, setTheme, appUser } = useContext(AppContext);
     const { isLoaded, isSignedIn } = useAuth();
     const clerk = useClerk();
-
-    useLayoutEffect(() => {
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-        const ctx = gsap.context(() => {
-            gsap.from(".nav-logo", {
-                opacity: 0,
-                y: -14,
-                duration: 0.45,
-                ease: "power2.out",
-            });
-
-            gsap.from(".nav-item", {
-                opacity: 0,
-                y: -10,
-                stagger: 0.06,
-                duration: 0.4,
-                ease: "power2.out",
-                delay: 0.08,
-            });
-        }, navRef);
-
-        return () => ctx.revert();
-    }, []);
 
     const toggleTheme = () => {
         setTheme(theme === "light" ? "dark" : "light");
@@ -50,15 +20,27 @@ export default function Navbar() {
 
     const handleSignInClick = async () => {
         try {
-            if (!isLoaded) {
-                return;
-            }
-
-            await clerk.redirectToSignIn({
+            if (!isLoaded) return;
+            await clerk.openSignIn({
+                fallbackRedirectUrl: window.location.href,
+            });
+        } catch (error) {
+            console.error("Sign-in modal failed, redirecting to sign-in:", error);
+            clerk.redirectToSignIn({
                 returnBackUrl: window.location.href,
             });
-        } catch {
-            clerk.redirectToSignIn({
+        }
+    };
+
+    const handleSignUpClick = async () => {
+        try {
+            if (!isLoaded) return;
+            await clerk.openSignUp({
+                fallbackRedirectUrl: window.location.href,
+            });
+        } catch (error) {
+            console.error("Sign-up modal failed, redirecting to sign-up:", error);
+            clerk.redirectToSignUp({
                 returnBackUrl: window.location.href,
             });
         }
@@ -66,17 +48,16 @@ export default function Navbar() {
 
     return (
         <nav
-            ref={navRef}
             className={`${theme === "dark"
-                    ? "bg-gray-900 border-b border-gray-800"
-                    : "bg-gradient-to-r from-blue-600 to-blue-800"
+                ? "bg-gray-900 border-b border-gray-800"
+                : "bg-gradient-to-r from-blue-600 to-blue-800"
                 } shadow-lg sticky top-0 z-50 transition-colors`}
         >
             <div className="container mx-auto px-4">
                 <div className="flex justify-between items-center py-4">
 
                     {/* Logo */}
-                    <Link to="/" className="flex items-center gap-2 nav-logo">
+                    <Link to="/" className="flex items-center gap-2">
                         <img src="/logo.png" alt="PIB BITS" className="h-12 object-contain" />
                     </Link>
 
@@ -85,63 +66,70 @@ export default function Navbar() {
                         className={`hidden md:flex items-center gap-8 ${theme === "dark" ? "text-gray-300" : "text-white"
                             }`}
                     >
-                        <Link to="/" className="hover:opacity-80 transition nav-item">
+                        <Link to="/" className="hover:opacity-80 transition">
                             Home
                         </Link>
 
-                        <Link to="/explore" className="hover:opacity-80 transition nav-item">
+                        <Link to="/explore" className="hover:opacity-80 transition">
                             Explore
                         </Link>
 
                         {/* Theme Toggle */}
                         <button
                             onClick={toggleTheme}
-                            className={`px-3 py-2 rounded-lg transition nav-item ${theme === "dark"
-                                    ? "bg-yellow-500 text-gray-900 hover:bg-yellow-400"
-                                    : "bg-gray-700 text-yellow-300 hover:bg-gray-600"
+                            className={`px-3 py-2 rounded-lg transition ${theme === "dark"
+                                ? "bg-yellow-500 text-gray-900 hover:bg-yellow-400"
+                                : "bg-gray-700 text-yellow-300 hover:bg-gray-600"
                                 }`}
                         >
                             {theme === "light" ? "🌙" : "☀️"}
                         </button>
 
                         {shouldShowSignIn && (
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={handleSignInClick}
-                                className="nav-item"
-                            >
-                                Sign In
-                            </Button>
+                            <>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={handleSignInClick}
+                                >
+                                    Sign In
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={handleSignUpClick}
+                                >
+                                    Sign Up
+                                </Button>
+                            </>
                         )}
 
                         {!shouldShowSignIn && (
                             <>
-                            <Link to="/dashboard" className="hover:opacity-80 transition nav-item">
-                                Dashboard
-                            </Link>
-
-                            {/* Admin Link */}
-                            {isAdmin && (
-                                <Link
-                                    to="/admin"
-                                    className="text-yellow-400 font-semibold hover:opacity-80 transition nav-item"
-                                >
-                                    Admin
+                                <Link to="/dashboard" className="hover:opacity-80 transition">
+                                    Dashboard
                                 </Link>
-                            )}
 
-                            {/* Instructor Link */}
-                            {isInstructor && (
-                                <Link
-                                    to="/creator"
-                                    className="text-green-400 font-semibold hover:opacity-80 transition nav-item"
-                                >
-                                    Creator
-                                </Link>
-                            )}
+                                {/* Admin Link */}
+                                {isAdmin && (
+                                    <Link
+                                        to="/admin"
+                                        className="text-yellow-400 font-semibold hover:opacity-80 transition"
+                                    >
+                                        Admin
+                                    </Link>
+                                )}
 
-                            <div className="nav-item">
+                                {/* Instructor Link */}
+                                {isInstructor && (
+                                    <Link
+                                        to="/creator"
+                                        className="text-green-400 font-semibold hover:opacity-80 transition"
+                                    >
+                                        Creator
+                                    </Link>
+                                )}
+
                                 <UserButton
                                     afterSignOutUrl="/"
                                     appearance={{
@@ -150,7 +138,6 @@ export default function Navbar() {
                                         },
                                     }}
                                 />
-                            </div>
                             </>
                         )}
                     </div>
@@ -160,8 +147,8 @@ export default function Navbar() {
                         <button
                             onClick={toggleTheme}
                             className={`px-3 py-2 rounded-lg ${theme === "dark"
-                                    ? "bg-yellow-500 text-gray-900"
-                                    : "bg-gray-700 text-yellow-300"
+                                ? "bg-yellow-500 text-gray-900"
+                                : "bg-gray-700 text-yellow-300"
                                 }`}
                         >
                             {theme === "light" ? "🌙" : "☀️"}
@@ -195,33 +182,43 @@ export default function Navbar() {
                         </Link>
 
                         {shouldShowSignIn && (
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                className="w-full"
-                                onClick={handleSignInClick}
-                            >
-                                Sign In
-                            </Button>
+                            <div className="flex flex-col gap-2">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={handleSignInClick}
+                                >
+                                    Sign In
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={handleSignUpClick}
+                                >
+                                    Sign Up
+                                </Button>
+                            </div>
                         )}
 
                         {!shouldShowSignIn && (
                             <>
-                            <Link to="/dashboard" className="block py-2">
-                                Dashboard
-                            </Link>
-
-                            {isAdmin && (
-                                <Link to="/admin" className="block py-2 text-yellow-400">
-                                    Admin
+                                <Link to="/dashboard" className="block py-2">
+                                    Dashboard
                                 </Link>
-                            )}
 
-                            {isInstructor && (
-                                <Link to="/creator" className="block py-2 text-green-400">
-                                    Creator
-                                </Link>
-                            )}
+                                {isAdmin && (
+                                    <Link to="/admin" className="block py-2 text-yellow-400">
+                                        Admin
+                                    </Link>
+                                )}
+
+                                {isInstructor && (
+                                    <Link to="/creator" className="block py-2 text-green-400">
+                                        Creator
+                                    </Link>
+                                )}
                             </>
                         )}
                     </div>

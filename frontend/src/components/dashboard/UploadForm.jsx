@@ -40,6 +40,7 @@ export default function UploadForm() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [loadingExistingCourse, setLoadingExistingCourse] = useState(false);
+    const [generatingDescription, setGeneratingDescription] = useState(false);
     const { isLoaded, isSignedIn, user } = useUser();
     const { getToken } = useAuth();
     const { theme } = useContext(AppContext);
@@ -507,7 +508,38 @@ export default function UploadForm() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-2">Description</label>
+                                <div className="flex items-center justify-between">
+                                    <label className="block text-sm font-medium mb-2">Description</label>
+                                    <button
+                                        type="button"
+                                        className="text-sm text-cyan-600 hover:underline"
+                                        onClick={async () => {
+                                            if (!formData.title) {
+                                                showToast('Please enter a title first', 'error');
+                                                return;
+                                            }
+
+                                            try {
+                                                setGeneratingDescription(true);
+                                                const resp = await courseAPI.generateDescription(formData.title);
+                                                if (resp?.success && resp.description) {
+                                                    setFormData(prev => ({ ...prev, description: resp.description }));
+                                                    showToast('Description generated', 'success');
+                                                } else {
+                                                    showToast(resp.message || 'Failed to generate description', 'error');
+                                                }
+                                            } catch (err) {
+                                                showToast(err.message || 'Generation failed', 'error');
+                                            } finally {
+                                                setGeneratingDescription(false);
+                                            }
+                                        }}
+                                        disabled={generatingDescription}
+                                    >
+                                        {generatingDescription ? 'Generating...' : 'Generate'}
+                                    </button>
+                                </div>
+
                                 <textarea
                                     name="description"
                                     value={formData.description}

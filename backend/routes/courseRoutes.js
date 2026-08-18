@@ -5,7 +5,8 @@ import {
     createCourse,
     updateCourse,
     deleteCourse,
-    deleteNonOwnedCourses
+    deleteNonOwnedCourses,
+    generateDescriptionEndpoint
 } from "../controllers/courseController.js";
 
 import upload from "../middleware/multer.js";
@@ -21,6 +22,9 @@ router.get("/:id", getCourseById);
 
 // Admin only
 router.delete("/cleanup/non-owned", requireAuth(), requireAdmin, deleteNonOwnedCourses);
+
+// Optional helper: generate a description from a title (uses AI service)
+router.post("/generate-description", requireAuth(), generateDescriptionEndpoint);
 
 router.post(
     "/",
